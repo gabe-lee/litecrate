@@ -42,10 +42,10 @@ type SelfAccessor interface {
 // A Crate is a data buffer with a separate read and write index
 // and options for how it should grow when needed.
 type Crate struct {
+	data  []byte
 	write uint64
 	read  uint64
 	flags uint8
-	data  []byte
 }
 
 // Just in case you want to pack Crates inside other Crates...
