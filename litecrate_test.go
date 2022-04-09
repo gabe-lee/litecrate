@@ -29,8 +29,8 @@ func (p *person) AccessSelf(crate *lite.Crate, mode lite.AccessMode) {
 	crate.AccessStringWithCounter(&p.Name, mode)
 	crate.AccessI64(&p.Mood, mode)
 	lite.AccessMap(crate, mode, &p.Phone, crate.AccessStringWithCounter, crate.AccessC128)
-	lite.AccessSlice(crate, mode, &p.Children, func(child *person, mode lite.AccessMode) {
-		crate.AccessSelfAccessor(child, mode)
+	lite.AccessSlice(crate, mode, &p.Children, func(child *person, mode lite.AccessMode) []byte {
+		return crate.AccessSelfAccessor(child, mode)
 	})
 	crate.AccessU24(&p.Steps, mode)
 }
@@ -214,6 +214,10 @@ func FuzzBool(f *testing.F) {
 		if smallCrate.WriteIndex() != 2 {
 			t.Error("WriteBool - FAIL: index != 2")
 		}
+		slice := smallCrate.AccessBool(&b, lite.Slice)
+		if len(slice) != 1 || cap(slice) != 1 {
+			t.Error("SliceBool - FAIL: len != 1 and/or cap != 1")
+		}
 		recvCrate := lite.OpenCrate(smallCrate.Data(), lite.FlagManualExact)
 		c = recvCrate.ReadBool()
 		d = recvCrate.ReadBool()
@@ -247,6 +251,10 @@ func FuzzU8(f *testing.F) {
 		}
 		if smallCrate.WriteIndex() != 2 {
 			t.Error("WriteU8 - FAIL: index != 2")
+		}
+		slice := smallCrate.AccessU8(&b, lite.Slice)
+		if len(slice) != 1 || cap(slice) != 1 {
+			t.Error("SliceU8 - FAIL: len != 1 and/or cap != 1")
 		}
 		recvCrate := lite.OpenCrate(smallCrate.Data(), lite.FlagManualExact)
 		c = recvCrate.ReadU8()
@@ -282,6 +290,10 @@ func FuzzI8(f *testing.F) {
 		if smallCrate.WriteIndex() != 2 {
 			t.Error("WriteI8 - FAIL: index != 2")
 		}
+		slice := smallCrate.AccessI8(&b, lite.Slice)
+		if len(slice) != 1 || cap(slice) != 1 {
+			t.Error("SliceI8 - FAIL: len != 1 and/or cap != 1")
+		}
 		recvCrate := lite.OpenCrate(smallCrate.Data(), lite.FlagManualExact)
 		c = recvCrate.ReadI8()
 		d = recvCrate.ReadI8()
@@ -316,6 +328,10 @@ func FuzzU16(f *testing.F) {
 		if smallCrate.WriteIndex() != 4 {
 			t.Error("WriteU16 - FAIL: index != 4")
 		}
+		slice := smallCrate.AccessU16(&b, lite.Slice)
+		if len(slice) != 2 || cap(slice) != 2 {
+			t.Error("SliceU16 - FAIL: len != 2 and/or cap != 2")
+		}
 		recvCrate := lite.OpenCrate(smallCrate.Data(), lite.FlagManualExact)
 		c = recvCrate.ReadU16()
 		d = recvCrate.ReadU16()
@@ -349,6 +365,10 @@ func FuzzI16(f *testing.F) {
 		}
 		if smallCrate.WriteIndex() != 4 {
 			t.Error("WriteI16 - FAIL: index != 4")
+		}
+		slice := smallCrate.AccessI16(&b, lite.Slice)
+		if len(slice) != 2 || cap(slice) != 2 {
+			t.Error("SliceI16 - FAIL: len != 2 and/or cap != 2")
 		}
 		recvCrate := lite.OpenCrate(smallCrate.Data(), lite.FlagManualExact)
 		c = recvCrate.ReadI16()
@@ -385,6 +405,10 @@ func FuzzU24(f *testing.F) {
 		}
 		if smallCrate.WriteIndex() != 6 {
 			t.Error("WriteU24 - FAIL: index != 6")
+		}
+		slice := smallCrate.AccessU24(&b, lite.Slice)
+		if len(slice) != 3 || cap(slice) != 3 {
+			t.Error("SliceU24 - FAIL: len != 3 and/or cap != 3")
 		}
 		recvCrate := lite.OpenCrate(smallCrate.Data(), lite.FlagManualExact)
 		c = recvCrate.ReadU24()
@@ -426,6 +450,10 @@ func FuzzI24(f *testing.F) {
 		if smallCrate.WriteIndex() != 6 {
 			t.Error("WriteI24 - FAIL: index != 6")
 		}
+		slice := smallCrate.AccessI24(&b, lite.Slice)
+		if len(slice) != 3 || cap(slice) != 3 {
+			t.Error("SliceI24 - FAIL: len != 3 and/or cap != 3")
+		}
 		recvCrate := lite.OpenCrate(smallCrate.Data(), lite.FlagManualExact)
 		c = recvCrate.ReadI24()
 		d = recvCrate.ReadI24()
@@ -460,6 +488,10 @@ func FuzzU32(f *testing.F) {
 		if smallCrate.WriteIndex() != 8 {
 			t.Error("WriteU32 - FAIL: index != 8")
 		}
+		slice := smallCrate.AccessU32(&b, lite.Slice)
+		if len(slice) != 4 || cap(slice) != 4 {
+			t.Error("SliceU32 - FAIL: len != 4 and/or cap != 4")
+		}
 		recvCrate := lite.OpenCrate(smallCrate.Data(), lite.FlagManualExact)
 		c = recvCrate.ReadU32()
 		d = recvCrate.ReadU32()
@@ -493,6 +525,10 @@ func FuzzI32(f *testing.F) {
 		}
 		if smallCrate.WriteIndex() != 8 {
 			t.Error("WriteI32 - FAIL: index != 8")
+		}
+		slice := smallCrate.AccessI32(&b, lite.Slice)
+		if len(slice) != 4 || cap(slice) != 4 {
+			t.Error("SliceI32 - FAIL: len != 4 and/or cap != 4")
 		}
 		recvCrate := lite.OpenCrate(smallCrate.Data(), lite.FlagManualExact)
 		c = recvCrate.ReadI32()
@@ -529,6 +565,10 @@ func FuzzU40(f *testing.F) {
 		}
 		if smallCrate.WriteIndex() != 10 {
 			t.Error("WriteU40 - FAIL: index != 10")
+		}
+		slice := smallCrate.AccessU40(&b, lite.Slice)
+		if len(slice) != 5 || cap(slice) != 5 {
+			t.Error("SliceU40 - FAIL: len != 5 and/or cap != 5")
 		}
 		recvCrate := lite.OpenCrate(smallCrate.Data(), lite.FlagManualExact)
 		c = recvCrate.ReadU40()
@@ -570,6 +610,10 @@ func FuzzI40(f *testing.F) {
 		if smallCrate.WriteIndex() != 10 {
 			t.Error("WriteI40 - FAIL: index != 10")
 		}
+		slice := smallCrate.AccessI40(&b, lite.Slice)
+		if len(slice) != 5 || cap(slice) != 5 {
+			t.Error("SliceI40 - FAIL: len != 5 and/or cap != 5")
+		}
 		recvCrate := lite.OpenCrate(smallCrate.Data(), lite.FlagManualExact)
 		c = recvCrate.ReadI40()
 		d = recvCrate.ReadI40()
@@ -605,6 +649,10 @@ func FuzzU48(f *testing.F) {
 		}
 		if smallCrate.WriteIndex() != 12 {
 			t.Error("WriteU48 - FAIL: index != 12")
+		}
+		slice := smallCrate.AccessU48(&b, lite.Slice)
+		if len(slice) != 6 || cap(slice) != 6 {
+			t.Error("SliceU48 - FAIL: len != 6 and/or cap != 6")
 		}
 		recvCrate := lite.OpenCrate(smallCrate.Data(), lite.FlagManualExact)
 		c = recvCrate.ReadU48()
@@ -646,6 +694,10 @@ func FuzzI48(f *testing.F) {
 		if smallCrate.WriteIndex() != 12 {
 			t.Error("WriteI48 - FAIL: index != 12")
 		}
+		slice := smallCrate.AccessI48(&b, lite.Slice)
+		if len(slice) != 6 || cap(slice) != 6 {
+			t.Error("SliceI48 - FAIL: len != 6 and/or cap != 6")
+		}
 		recvCrate := lite.OpenCrate(smallCrate.Data(), lite.FlagManualExact)
 		c = recvCrate.ReadI48()
 		d = recvCrate.ReadI48()
@@ -681,6 +733,10 @@ func FuzzU56(f *testing.F) {
 		}
 		if smallCrate.WriteIndex() != 14 {
 			t.Error("WriteU56 - FAIL: index != 14")
+		}
+		slice := smallCrate.AccessU56(&b, lite.Slice)
+		if len(slice) != 7 || cap(slice) != 7 {
+			t.Error("SliceU56 - FAIL: len != 7 and/or cap != 7")
 		}
 		recvCrate := lite.OpenCrate(smallCrate.Data(), lite.FlagManualExact)
 		c = recvCrate.ReadU56()
@@ -722,6 +778,10 @@ func FuzzI56(f *testing.F) {
 		if smallCrate.WriteIndex() != 14 {
 			t.Error("WriteI56 - FAIL: index != 14")
 		}
+		slice := smallCrate.AccessI56(&b, lite.Slice)
+		if len(slice) != 7 || cap(slice) != 7 {
+			t.Error("SliceI56 - FAIL: len != 7 and/or cap != 7")
+		}
 		recvCrate := lite.OpenCrate(smallCrate.Data(), lite.FlagManualExact)
 		c = recvCrate.ReadI56()
 		d = recvCrate.ReadI56()
@@ -755,6 +815,10 @@ func FuzzU64(f *testing.F) {
 		}
 		if smallCrate.WriteIndex() != 16 {
 			t.Error("WriteU64 - FAIL: index != 16")
+		}
+		slice := smallCrate.AccessU64(&b, lite.Slice)
+		if len(slice) != 8 || cap(slice) != 8 {
+			t.Error("SliceU64 - FAIL: len != 8 and/or cap != 8")
 		}
 		recvCrate := lite.OpenCrate(smallCrate.Data(), lite.FlagManualExact)
 		c = recvCrate.ReadU64()
@@ -790,6 +854,10 @@ func FuzzI64(f *testing.F) {
 		if smallCrate.WriteIndex() != 16 {
 			t.Error("WriteI64 - FAIL: index != 16")
 		}
+		slice := smallCrate.AccessI64(&b, lite.Slice)
+		if len(slice) != 8 || cap(slice) != 8 {
+			t.Error("SliceI64 - FAIL: len != 8 and/or cap != 8")
+		}
 		recvCrate := lite.OpenCrate(smallCrate.Data(), lite.FlagManualExact)
 		c = recvCrate.ReadI64()
 		d = recvCrate.ReadI64()
@@ -824,6 +892,10 @@ func FuzzInt(f *testing.F) {
 		if smallCrate.WriteIndex() != 16 {
 			t.Error("WriteInt - FAIL: index != 16")
 		}
+		slice := smallCrate.AccessInt(&b, lite.Slice)
+		if len(slice) != 8 || cap(slice) != 8 {
+			t.Error("SliceInt - FAIL: len != 8 and/or cap != 8")
+		}
 		recvCrate := lite.OpenCrate(smallCrate.Data(), lite.FlagManualExact)
 		c = recvCrate.ReadInt()
 		d = recvCrate.ReadInt()
@@ -857,6 +929,10 @@ func FuzzUint(f *testing.F) {
 		}
 		if smallCrate.WriteIndex() != 16 {
 			t.Error("WriteUint - FAIL: index != 16")
+		}
+		slice := smallCrate.AccessUint(&b, lite.Slice)
+		if len(slice) != 8 || cap(slice) != 8 {
+			t.Error("SliceUint - FAIL: len != 8 and/or cap != 8")
 		}
 		recvCrate := lite.OpenCrate(smallCrate.Data(), lite.FlagManualExact)
 		c = recvCrate.ReadUint()
@@ -893,6 +969,10 @@ func FuzzUINTPtr(f *testing.F) {
 		if smallCrate.WriteIndex() != 16 {
 			t.Error("WriteUintPtr - FAIL: index != 16")
 		}
+		slice := smallCrate.AccessUintPtr(&b, lite.Slice)
+		if len(slice) != 8 || cap(slice) != 8 {
+			t.Error("SliceUintPtr - FAIL: len != 8 and/or cap != 8")
+		}
 		recvCrate := lite.OpenCrate(smallCrate.Data(), lite.FlagManualExact)
 		c = recvCrate.ReadUintPtr()
 		d = recvCrate.ReadUintPtr()
@@ -927,6 +1007,10 @@ func FuzzF32(f *testing.F) {
 		if smallCrate.WriteIndex() != 8 {
 			t.Error("WriteF32 - FAIL: index != 8")
 		}
+		slice := smallCrate.AccessF32(&b, lite.Slice)
+		if len(slice) != 4 || cap(slice) != 4 {
+			t.Error("SliceF32 - FAIL: len != 4 and/or cap != 4")
+		}
 		recvCrate := lite.OpenCrate(smallCrate.Data(), lite.FlagManualExact)
 		c = recvCrate.ReadF32()
 		d = recvCrate.ReadF32()
@@ -960,6 +1044,10 @@ func FuzzF64(f *testing.F) {
 		}
 		if smallCrate.WriteIndex() != 16 {
 			t.Error("WriteF64 - FAIL: index != 16")
+		}
+		slice := smallCrate.AccessF64(&b, lite.Slice)
+		if len(slice) != 8 || cap(slice) != 8 {
+			t.Error("SliceF64 - FAIL: len != 8 and/or cap != 8")
 		}
 		recvCrate := lite.OpenCrate(smallCrate.Data(), lite.FlagManualExact)
 		c = recvCrate.ReadF64()
@@ -996,6 +1084,10 @@ func FuzzC64(f *testing.F) {
 		if smallCrate.WriteIndex() != 16 {
 			t.Error("WriteC64 - FAIL: index != 16")
 		}
+		slice := smallCrate.AccessC64(&b, lite.Slice)
+		if len(slice) != 8 || cap(slice) != 8 {
+			t.Error("SliceC64 - FAIL: len != 8 and/or cap != 8")
+		}
 		recvCrate := lite.OpenCrate(smallCrate.Data(), lite.FlagManualExact)
 		c = recvCrate.ReadC64()
 		d = recvCrate.ReadC64()
@@ -1031,6 +1123,10 @@ func FuzzC128(f *testing.F) {
 		if smallCrate.WriteIndex() != 32 {
 			t.Error("WriteC128 - FAIL: index != 32")
 		}
+		slice := smallCrate.AccessC128(&b, lite.Slice)
+		if len(slice) != 16 || cap(slice) != 16 {
+			t.Error("SliceC128 - FAIL: len != 16 and/or cap != 16")
+		}
 		recvCrate := lite.OpenCrate(smallCrate.Data(), lite.FlagManualExact)
 		c = recvCrate.ReadC128()
 		d = recvCrate.ReadC128()
@@ -1058,6 +1154,10 @@ func FuzzString(f *testing.F) {
 		if largeCrate.ReadIndex() != 0 {
 			t.Error("PeekString - FAIL: index was increased")
 		}
+		slice := largeCrate.AccessStringWithCounter(&a, lite.Slice)
+		if len(slice) != len(a) || cap(slice) != len(a) {
+			t.Errorf("SliceStringWithCounter - FAIL: len(%d) != %d and/or cap(%d) != %d", len(slice), len(a), cap(slice), len(a))
+		}
 		recvCrate := lite.OpenCrate(largeCrate.Data(), lite.FlagManualExact)
 		c = recvCrate.ReadStringWithCounter()
 		d = recvCrate.ReadStringWithCounter()
@@ -1084,6 +1184,10 @@ func FuzzBytes(f *testing.F) {
 		}
 		if largeCrate.ReadIndex() != 0 {
 			t.Error("PeekBytes - FAIL: index was increased")
+		}
+		slice := largeCrate.AccessBytesWithCounter(&a, lite.Slice)
+		if len(slice) != len(a) || cap(slice) != len(a) {
+			t.Errorf("SliceBytesWithCounter - FAIL: len(%d) != %d and/or cap(%d) != %d", len(slice), len(a), cap(slice), len(a))
 		}
 		recvCrate := lite.OpenCrate(largeCrate.Data(), lite.FlagManualExact)
 		c = recvCrate.ReadBytesWithCounter()
