@@ -1,2 +1,2 @@
-# lite-crate
+# LiteCrate
 Lightning-fast data serialization package
