@@ -9,7 +9,7 @@ import (
 	"testing"
 	"unsafe"
 
-	lite "github.com/gabe-lee/lite-crate"
+	lite "github.com/gabe-lee/litecrate"
 )
 
 var smallCrate = lite.NewCrate(64, lite.FlagManualExact)
