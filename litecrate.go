@@ -84,7 +84,7 @@ func (c *Crate) CheckWrite(size uint64) {
 	l64 := len64(c.data)
 	if sum > l64 {
 		if !c.WillAutoGrow() {
-			panic("Lite-Crate: AutoGrow set to false and cannot write " + intStr(size) + " more bytes (written bytes: " + intStr(c.write) + ", max bytes: " + intStr(l64) + ", space left: " + intStr(l64-c.write) + ")")
+			panic("LiteCrate: AutoGrow set to false and cannot write " + intStr(size) + " more bytes (written bytes: " + intStr(c.write) + ", max bytes: " + intStr(l64) + ", space left: " + intStr(l64-c.write) + ")")
 		}
 		diff := sum - l64
 		c.Grow(int(diff))
@@ -97,7 +97,7 @@ func (c *Crate) CheckWrite(size uint64) {
 func (c *Crate) CheckRead(size uint64) {
 	sum := c.read + size
 	if sum > c.write {
-		panic("Lite-Crate: cannot read " + intStr(size) + " more bytes (read index: " + intStr(c.read) + ", write index: " + intStr(c.write) + ", unread bytes left in crate: " + intStr(c.write-c.read) + ")")
+		panic("LiteCrate: cannot read " + intStr(size) + " more bytes (read index: " + intStr(c.read) + ", write index: " + intStr(c.write) + ", unread bytes left in crate: " + intStr(c.write-c.read) + ")")
 	}
 	_ = c.data[sum-1]
 }
@@ -342,7 +342,7 @@ func (c *Crate) AccessBool(val *bool, mode AccessMode) {
 	case Discard:
 		c.DiscardBool()
 	default:
-		panic("Lite-Crate: Invalid mode passed to AccessBool()")
+		panic("LiteCrate: Invalid mode passed to AccessBool()")
 	}
 }
 
@@ -403,7 +403,7 @@ func (c *Crate) AccessU8(val *uint8, mode AccessMode) {
 	case Discard:
 		c.DiscardU8()
 	default:
-		panic("Lite-Crate: Invalid mode passed to AccessU8()")
+		panic("LiteCrate: Invalid mode passed to AccessU8()")
 	}
 }
 
@@ -501,7 +501,7 @@ func (c *Crate) AccessI8(val *int8, mode AccessMode) {
 	case Discard:
 		c.DiscardI8()
 	default:
-		panic("Lite-Crate: Invalid mode passed to AccessI8()")
+		panic("LiteCrate: Invalid mode passed to AccessI8()")
 	}
 }
 
@@ -568,7 +568,7 @@ func (c *Crate) AccessU16(val *uint16, mode AccessMode) {
 	case Discard:
 		c.DiscardU16()
 	default:
-		panic("Lite-Crate: Invalid mode passed to AccessU16()")
+		panic("LiteCrate: Invalid mode passed to AccessU16()")
 	}
 }
 
@@ -635,7 +635,7 @@ func (c *Crate) AccessI16(val *int16, mode AccessMode) {
 	case Discard:
 		c.DiscardI16()
 	default:
-		panic("Lite-Crate: Invalid mode passed to AccessI16()")
+		panic("LiteCrate: Invalid mode passed to AccessI16()")
 	}
 }
 
@@ -709,7 +709,7 @@ func (c *Crate) AccessU24(val *uint32, mode AccessMode) {
 	case Discard:
 		c.DiscardU24()
 	default:
-		panic("Lite-Crate: Invalid mode passed to AccessU24()")
+		panic("LiteCrate: Invalid mode passed to AccessU24()")
 	}
 }
 
@@ -795,7 +795,7 @@ func (c *Crate) AccessI24(val *int32, mode AccessMode) {
 	case Discard:
 		c.DiscardI24()
 	default:
-		panic("Lite-Crate: Invalid mode passed to AccessI24()")
+		panic("LiteCrate: Invalid mode passed to AccessI24()")
 	}
 }
 
@@ -864,7 +864,7 @@ func (c *Crate) AccessU32(val *uint32, mode AccessMode) {
 	case Discard:
 		c.DiscardU32()
 	default:
-		panic("Lite-Crate: Invalid mode passed to AccessU32()")
+		panic("LiteCrate: Invalid mode passed to AccessU32()")
 	}
 }
 
@@ -933,7 +933,7 @@ func (c *Crate) AccessI32(val *int32, mode AccessMode) {
 	case Discard:
 		c.DiscardI32()
 	default:
-		panic("Lite-Crate: Invalid mode passed to AccessI32()")
+		panic("LiteCrate: Invalid mode passed to AccessI32()")
 	}
 }
 
@@ -1048,7 +1048,7 @@ func (c *Crate) AccessU40(val *uint64, mode AccessMode) {
 	case Discard:
 		c.DiscardU40()
 	default:
-		panic("Lite-Crate: Invalid mode passed to AccessU40()")
+		panic("LiteCrate: Invalid mode passed to AccessU40()")
 	}
 }
 
@@ -1137,7 +1137,7 @@ func (c *Crate) AccessI40(val *int64, mode AccessMode) {
 	case Discard:
 		c.DiscardI40()
 	default:
-		panic("Lite-Crate: Invalid mode passed to AccessI40()")
+		panic("LiteCrate: Invalid mode passed to AccessI40()")
 	}
 }
 
@@ -1215,7 +1215,7 @@ func (c *Crate) AccessU48(val *uint64, mode AccessMode) {
 	case Discard:
 		c.DiscardU48()
 	default:
-		panic("Lite-Crate: Invalid mode passed to AccessU48()")
+		panic("LiteCrate: Invalid mode passed to AccessU48()")
 	}
 }
 
@@ -1304,7 +1304,7 @@ func (c *Crate) AccessI48(val *int64, mode AccessMode) {
 	case Discard:
 		c.DiscardI48()
 	default:
-		panic("Lite-Crate: Invalid mode passed to AccessI48()")
+		panic("LiteCrate: Invalid mode passed to AccessI48()")
 	}
 }
 
@@ -1384,7 +1384,7 @@ func (c *Crate) AccessU56(val *uint64, mode AccessMode) {
 	case Discard:
 		c.DiscardU56()
 	default:
-		panic("Lite-Crate: Invalid mode passed to AccessU56()")
+		panic("LiteCrate: Invalid mode passed to AccessU56()")
 	}
 }
 
@@ -1475,7 +1475,7 @@ func (c *Crate) AccessI56(val *int64, mode AccessMode) {
 	case Discard:
 		c.DiscardI56()
 	default:
-		panic("Lite-Crate: Invalid mode passed to AccessI56()")
+		panic("LiteCrate: Invalid mode passed to AccessI56()")
 	}
 }
 
@@ -1552,7 +1552,7 @@ func (c *Crate) AccessU64(val *uint64, mode AccessMode) {
 	case Discard:
 		c.DiscardU64()
 	default:
-		panic("Lite-Crate: Invalid mode passed to AccessU64()")
+		panic("LiteCrate: Invalid mode passed to AccessU64()")
 	}
 }
 
@@ -1629,7 +1629,7 @@ func (c *Crate) AccessI64(val *int64, mode AccessMode) {
 	case Discard:
 		c.DiscardI64()
 	default:
-		panic("Lite-Crate: Invalid mode passed to AccessI64()")
+		panic("LiteCrate: Invalid mode passed to AccessI64()")
 	}
 }
 
@@ -1710,7 +1710,7 @@ func (c *Crate) AccessInt(val *int, mode AccessMode) {
 	case Discard:
 		c.DiscardInt()
 	default:
-		panic("Lite-Crate: Invalid mode passed to AccessInt()")
+		panic("LiteCrate: Invalid mode passed to AccessInt()")
 	}
 }
 
@@ -1790,7 +1790,7 @@ func (c *Crate) AccessUint(val *uint, mode AccessMode) {
 	case Discard:
 		c.DiscardUint()
 	default:
-		panic("Lite-Crate: Invalid mode passed to AccessUint()")
+		panic("LiteCrate: Invalid mode passed to AccessUint()")
 	}
 }
 
@@ -1870,7 +1870,7 @@ func (c *Crate) AccessUintPtr(val *uintptr, mode AccessMode) {
 	case Discard:
 		c.DiscardUintPtr()
 	default:
-		panic("Lite-Crate: Invalid mode passed to AccessUintPtr()")
+		panic("LiteCrate: Invalid mode passed to AccessUintPtr()")
 	}
 }
 
@@ -1941,7 +1941,7 @@ func (c *Crate) AccessF32(val *float32, mode AccessMode) {
 	case Discard:
 		c.DiscardF32()
 	default:
-		panic("Lite-Crate: Invalid mode passed to AccessF32()")
+		panic("LiteCrate: Invalid mode passed to AccessF32()")
 	}
 }
 
@@ -2020,7 +2020,7 @@ func (c *Crate) AccessF64(val *float64, mode AccessMode) {
 	case Discard:
 		c.DiscardF64()
 	default:
-		panic("Lite-Crate: Invalid mode passed to AccessF64()")
+		panic("LiteCrate: Invalid mode passed to AccessF64()")
 	}
 }
 
@@ -2099,7 +2099,7 @@ func (c *Crate) AccessC64(val *complex64, mode AccessMode) {
 	case Discard:
 		c.DiscardC64()
 	default:
-		panic("Lite-Crate: Invalid mode passed to AccessC64()")
+		panic("LiteCrate: Invalid mode passed to AccessC64()")
 	}
 }
 
@@ -2196,7 +2196,7 @@ func (c *Crate) AccessC128(val *complex128, mode AccessMode) {
 	case Discard:
 		c.DiscardC128()
 	default:
-		panic("Lite-Crate: Invalid mode passed to AccessC128()")
+		panic("LiteCrate: Invalid mode passed to AccessC128()")
 	}
 }
 
@@ -2518,7 +2518,7 @@ func (c *Crate) AccessLength(val *uint64, writeNil bool, mode AccessMode) (readN
 	case Discard:
 		bytesUsed = c.DiscardLength()
 	default:
-		panic("Lite-Crate: Invalid mode passed to AccessLength()")
+		panic("LiteCrate: Invalid mode passed to AccessLength()")
 	}
 	return readNil, bytesUsed
 }
@@ -2644,7 +2644,7 @@ func (c *Crate) AccessString(val *string, readLength uint64, mode AccessMode) {
 	case Discard:
 		c.DiscardString(readLength)
 	default:
-		panic("Lite-Crate: Invalid mode passed to AccessString()")
+		panic("LiteCrate: Invalid mode passed to AccessString()")
 	}
 }
 
@@ -2662,7 +2662,7 @@ func (c *Crate) AccessStringWithCounter(val *string, mode AccessMode) {
 	case Discard:
 		c.DiscardStringWithCounter()
 	default:
-		panic("Lite-Crate: Invalid mode passed to AccessStringWithCounter()")
+		panic("LiteCrate: Invalid mode passed to AccessStringWithCounter()")
 	}
 }
 
@@ -2804,7 +2804,7 @@ func (c *Crate) AccessBytes(val *[]byte, readLength uint64, mode AccessMode) {
 	case Discard:
 		c.DiscardBytes(readLength)
 	default:
-		panic("Lite-Crate: Invalid mode passed to AccessBytes()")
+		panic("LiteCrate: Invalid mode passed to AccessBytes()")
 	}
 }
 
@@ -2822,7 +2822,7 @@ func (c *Crate) AccessBytesWithCounter(val *[]byte, mode AccessMode) {
 	case Discard:
 		c.DiscardBytesWithCounter()
 	default:
-		panic("Lite-Crate: Invalid mode passed to AccessBytesWithCounter()")
+		panic("LiteCrate: Invalid mode passed to AccessBytesWithCounter()")
 	}
 }
 
@@ -2905,7 +2905,7 @@ func AccessSlice[T any](crate *Crate, mode AccessMode, slice *[]T, accessElement
 			accessElementFunc(&(*slice)[i], mode)
 		}
 	default:
-		panic("Lite-Crate: invalid mode passed to AccessSlice()")
+		panic("LiteCrate: invalid mode passed to AccessSlice()")
 	}
 }
 
@@ -2952,7 +2952,7 @@ func AccessMap[K comparable, V any](crate *Crate, mode AccessMode, Map *map[K]V,
 			accessValFunc(&val, mode)
 		}
 	default:
-		panic("Lite-Crate: invalid mode passed to AccessMap()")
+		panic("LiteCrate: invalid mode passed to AccessMap()")
 	}
 }
 
