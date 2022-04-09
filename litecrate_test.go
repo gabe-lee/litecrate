@@ -1139,6 +1139,82 @@ func FuzzC128(f *testing.F) {
 	})
 }
 
+func findLengthBytesFromValue(length uint64, isNil bool) uint64 {
+	length += 1
+	switch {
+	case isNil:
+		return 1
+	case length <= 127:
+		return 1
+	case length <= 16383:
+		return 2
+	case length <= 2097151:
+		return 3
+	case length <= 268435455:
+		return 4
+	case length <= 34359738367:
+		return 5
+	case length <= 4398046511103:
+		return 6
+	case length <= 562949953421311:
+		return 7
+	case length <= 72057594037927935:
+		return 8
+	default:
+		return 9
+	}
+}
+
+func FuzzLength(f *testing.F) {
+	f.Add(uint64(10), uint64(1000))
+	smallCrate.FullClear()
+	f.Fuzz(func(t *testing.T, a uint64, b uint64) {
+		smallCrate.Reset()
+		var n uint64 = 0
+		var c, d, e, cBytes, dBytes, eBytes uint64
+		var cNil, dNil, eNil bool
+		bytesA, bytesB, bytesN := findLengthBytesFromValue(a, false), findLengthBytesFromValue(b, false), findLengthBytesFromValue(n, true)
+		bytesTotal := bytesA + bytesB + bytesN
+		smallCrate.AccessLength(&a, false, lite.Write)
+		smallCrate.AccessLength(&b, false, lite.Write)
+		smallCrate.AccessLength(&n, true, lite.Write)
+		smallCrate.AccessLength(&c, false, lite.Peek)
+		if c != a {
+			t.Errorf("PeekLength - FAIL: %d != %d", c, a)
+		}
+		if smallCrate.ReadIndex() != 0 {
+			t.Error("PeekLength - FAIL: index was increased")
+		}
+		smallCrate.AccessLength(nil, false, lite.Discard)
+		if smallCrate.ReadIndex() != bytesA {
+			t.Error("DiscardLength - FAIL: index != ", bytesA)
+		}
+		if smallCrate.WriteIndex() != bytesTotal {
+			t.Error("WriteLength - FAIL: index != ", bytesTotal)
+		}
+		_, _, slice := smallCrate.AccessLength(&b, false, lite.Slice)
+		if uint64(len(slice)) != bytesB || uint64(cap(slice)) != bytesB {
+			t.Error("SliceLength - FAIL: len != ", bytesB, " and/or cap != ", bytesB)
+		}
+		recvCrate := lite.OpenCrate(smallCrate.Data(), lite.FlagManualExact)
+		c, cNil, cBytes = recvCrate.ReadLength()
+		d, dNil, dBytes = recvCrate.ReadLength()
+		e, eNil, eBytes = recvCrate.ReadLength()
+		if a != c || b != d || n != e {
+			t.Errorf("Read/Write Length - FAIL (value): %d != %d and/or %d != %d and/or %d != %d", a, c, b, d, n, e)
+		}
+		if false != cNil || false != dNil || true != eNil {
+			t.Errorf("Read/Write Length - FAIL (nility): %v != %v and/or %v != %v and/or %v != %v", false, cNil, false, dNil, true, eNil)
+		}
+		if bytesA != cBytes || bytesB != dBytes || bytesN != eBytes {
+			t.Errorf("Read/Write Length - FAIL (bytes): %d != %d and/or %d != %d and/or %d != %d", bytesA, cBytes, bytesB, dBytes, bytesN, eBytes)
+		}
+		if recvCrate.ReadIndex() != bytesTotal {
+			t.Error("ReadLength - FAIL: index != ", bytesTotal)
+		}
+	})
+}
+
 func FuzzString(f *testing.F) {
 	f.Add("HelloWorld", "FooBar")
 	largeCrate.FullClear()

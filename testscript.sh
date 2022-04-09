@@ -58,6 +58,8 @@ echo "--- FuzzC64"
 go test -fuzz=FuzzC64 -fuzztime 5s
 echo "--- FuzzC128"
 go test -fuzz=FuzzC128 -fuzztime 5s
+echo "--- FuzzLength"
+go test -fuzz=FuzzLength -fuzztime 10s
 echo "--- FuzzString"
 go test -fuzz=FuzzString -fuzztime 60s
 echo "--- FuzzBytes"

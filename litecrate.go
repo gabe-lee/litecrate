@@ -2447,6 +2447,7 @@ const (
 // using 1-9 bytes dependant on length.
 // Returns the number of bytes read and whether the value represents nil instead of zero
 func ReadLength[T isU64](data []byte, dst *T) (bytesRead uint64, isNil bool) {
+	_ = data[len(data)-1]
 	b := data[0]
 	var val uint64 = 0
 	count := uint64(b & countMask)
@@ -2460,9 +2461,6 @@ func ReadLength[T isU64](data []byte, dst *T) (bytesRead uint64, isNil bool) {
 		*(*uint64)(unsafe.Pointer(dst)) = val - 1
 		return 1, false
 	}
-	// a counter with more than 1 length byte means the buffer MUST hold AT LEAST 129 more bytes
-	// we can eliminate the remaining bounds checks, guaranteed (unless the buffer is malformed)
-	_ = data[8]
 	b = data[1]
 	count = uint64(b & countMask)
 	longer = (b & continueMask) > 0
@@ -2529,6 +2527,7 @@ func ReadLength[T isU64](data []byte, dst *T) (bytesRead uint64, isNil bool) {
 // Write length counter (uint64) from src into data, with special behavior for representing nil.
 // Uses 1-9 bytes dependant on length, returns number of bytes written
 func WriteLength[T isU64](data []byte, src T, isNil bool) (bytesWritten uint64) {
+	_ = data[len(data)-1]
 	if isNil {
 		data[0] = 0
 		return 1
@@ -2627,13 +2626,11 @@ func WriteLength[T isU64](data []byte, src T, isNil bool) (bytesWritten uint64) 
 }
 
 func findLengthBytesFromData(data []byte) uint64 {
+	_ = data[len(data)-1]
 	longer := (data[0] & continueMask) > 0
 	if !longer {
 		return 1
 	}
-	// a counter with more than 1 length byte means the crate MUST hold AT LEAST 129 more bytes
-	// we can eliminate the remaining bounds checks, guaranteed (unless the buffer is malformed)
-	_ = data[8]
 	longer = (data[1] & continueMask) > 0
 	if !longer {
 		return 2
