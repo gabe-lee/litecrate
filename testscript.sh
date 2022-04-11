@@ -10,6 +10,8 @@ go test -bench=.
 echo "+-------------+"
 echo "|   FUZZING   |"
 echo "+-------------+"
+echo "--- FuzzZigZag"
+go test -fuzz=FuzzZigZag -fuzztime 5s
 echo "--- FuzzBool"
 go test -fuzz=FuzzBool -fuzztime 1s
 echo "--- FuzzU8"
@@ -58,8 +60,12 @@ echo "--- FuzzC64"
 go test -fuzz=FuzzC64 -fuzztime 5s
 echo "--- FuzzC128"
 go test -fuzz=FuzzC128 -fuzztime 5s
-echo "--- FuzzLength"
-go test -fuzz=FuzzLength -fuzztime 10s
+echo "--- FuzzUVarint"
+go test -fuzz=FuzzUVarint -fuzztime 5s
+echo "--- FuzzVarint"
+go test -fuzz=FuzzVarint -fuzztime 5s
+echo "--- FuzzLengthOrNil"
+go test -fuzz=FuzzLengthOrNil -fuzztime 20s
 echo "--- FuzzString"
 go test -fuzz=FuzzString -fuzztime 60s
 echo "--- FuzzBytes"

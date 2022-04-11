@@ -192,6 +192,22 @@ func TestVerifyComplexLayout(t *testing.T) {
 	}
 }
 
+func FuzzZigZagAglorithm(f *testing.F) {
+	f.Add(int64(0))
+	f.Add(int64(1123872834618724681))
+	f.Add(int64(-8232873817281237123))
+	f.Add(int64(-9223372036854775808))
+	f.Add(int64(9223372036854775807))
+	smallCrate.FullClear()
+	f.Fuzz(func(t *testing.T, a int64) {
+		b := uint64((a << 1) ^ (a >> 63))
+		c := int64((b >> 1) ^ -(b & 1))
+		if a != c {
+			t.Errorf("ZigZag algorithm failed: %d -> %d -> %d", a, b, c)
+		}
+	})
+}
+
 func FuzzBool(f *testing.F) {
 	f.Add(true, false)
 	smallCrate.FullClear()
@@ -1139,78 +1155,180 @@ func FuzzC128(f *testing.F) {
 	})
 }
 
-func findLengthBytesFromValue(length uint64, isNil bool) uint64 {
-	length += 1
+func findUVarintBytesFromValue(value uint64) uint64 {
 	switch {
-	case isNil:
+	case value <= 127:
 		return 1
-	case length <= 127:
-		return 1
-	case length <= 16383:
+	case value <= 16383:
 		return 2
-	case length <= 2097151:
+	case value <= 2097151:
 		return 3
-	case length <= 268435455:
+	case value <= 268435455:
 		return 4
-	case length <= 34359738367:
+	case value <= 34359738367:
 		return 5
-	case length <= 4398046511103:
+	case value <= 4398046511103:
 		return 6
-	case length <= 562949953421311:
+	case value <= 562949953421311:
 		return 7
-	case length <= 72057594037927935:
+	case value <= 72057594037927935:
 		return 8
 	default:
 		return 9
 	}
 }
 
-func FuzzLength(f *testing.F) {
+func zigZagEncode(iVal int64) uint64 {
+	return uint64((iVal << 1) ^ (iVal >> 63))
+}
+
+func findVarintBytesFromValue(value int64) uint64 {
+	uVal := zigZagEncode(value)
+	return findUVarintBytesFromValue(uVal)
+}
+
+func FuzzUVarint(f *testing.F) {
 	f.Add(uint64(10), uint64(1000))
 	smallCrate.FullClear()
 	f.Fuzz(func(t *testing.T, a uint64, b uint64) {
 		smallCrate.Reset()
-		var n uint64 = 0
-		var c, d, e, cBytes, dBytes, eBytes uint64
-		var cNil, dNil, eNil bool
-		bytesA, bytesB, bytesN := findLengthBytesFromValue(a, false), findLengthBytesFromValue(b, false), findLengthBytesFromValue(n, true)
-		bytesTotal := bytesA + bytesB + bytesN
-		smallCrate.AccessLength(&a, false, lite.Write)
-		smallCrate.AccessLength(&b, false, lite.Write)
-		smallCrate.AccessLength(&n, true, lite.Write)
-		smallCrate.AccessLength(&c, false, lite.Peek)
+		var c, d, cBytes, dBytes uint64
+		bytesA, bytesB := findUVarintBytesFromValue(a), findUVarintBytesFromValue(b)
+		bytesTotal := bytesA + bytesB
+		smallCrate.AccessUVarint(&a, lite.Write)
+		smallCrate.AccessUVarint(&b, lite.Write)
+		smallCrate.AccessUVarint(&c, lite.Peek)
 		if c != a {
-			t.Errorf("PeekLength - FAIL: %d != %d", c, a)
+			t.Errorf("PeekUVarint - FAIL: %d != %d", c, a)
 		}
 		if smallCrate.ReadIndex() != 0 {
-			t.Error("PeekLength - FAIL: index was increased")
+			t.Error("PeekUVarint - FAIL: index was increased")
 		}
-		smallCrate.AccessLength(nil, false, lite.Discard)
+		smallCrate.AccessUVarint(nil, lite.Discard)
 		if smallCrate.ReadIndex() != bytesA {
-			t.Error("DiscardLength - FAIL: index != ", bytesA)
+			t.Error("DiscardUVarint - FAIL: index != ", bytesA)
 		}
 		if smallCrate.WriteIndex() != bytesTotal {
-			t.Error("WriteLength - FAIL: index != ", bytesTotal)
+			t.Error("WriteUVarint - FAIL: index != ", bytesTotal)
 		}
-		_, _, slice := smallCrate.AccessLength(&b, false, lite.Slice)
+		_, slice := smallCrate.AccessUVarint(&b, lite.Slice)
 		if uint64(len(slice)) != bytesB || uint64(cap(slice)) != bytesB {
-			t.Error("SliceLength - FAIL: len != ", bytesB, " and/or cap != ", bytesB)
+			t.Error("SliceUVarint - FAIL: len(", len(slice), ") != ", bytesB, " and/or cap(", cap(slice), ") != ", bytesB)
 		}
 		recvCrate := lite.OpenCrate(smallCrate.Data(), lite.FlagManualExact)
-		c, cNil, cBytes = recvCrate.ReadLength()
-		d, dNil, dBytes = recvCrate.ReadLength()
-		e, eNil, eBytes = recvCrate.ReadLength()
-		if a != c || b != d || n != e {
-			t.Errorf("Read/Write Length - FAIL (value): %d != %d and/or %d != %d and/or %d != %d", a, c, b, d, n, e)
+		c, cBytes = recvCrate.ReadUVarint()
+		d, dBytes = recvCrate.ReadUVarint()
+		if a != c || b != d {
+			t.Errorf("Read/Write UVarint - FAIL (value): %d != %d and/or %d != %d", a, c, b, d)
 		}
-		if false != cNil || false != dNil || true != eNil {
-			t.Errorf("Read/Write Length - FAIL (nility): %v != %v and/or %v != %v and/or %v != %v", false, cNil, false, dNil, true, eNil)
-		}
-		if bytesA != cBytes || bytesB != dBytes || bytesN != eBytes {
-			t.Errorf("Read/Write Length - FAIL (bytes): %d != %d and/or %d != %d and/or %d != %d", bytesA, cBytes, bytesB, dBytes, bytesN, eBytes)
+		if bytesA != cBytes || bytesB != dBytes {
+			t.Errorf("Read/Write UVarint - FAIL (bytes): %d != %d and/or %d != %d ", bytesA, cBytes, bytesB, dBytes)
 		}
 		if recvCrate.ReadIndex() != bytesTotal {
-			t.Error("ReadLength - FAIL: index != ", bytesTotal)
+			t.Error("ReadUVarint - FAIL: index != ", bytesTotal)
+		}
+	})
+}
+
+func FuzzVarint(f *testing.F) {
+	f.Add(int64(10), int64(-1000))
+	smallCrate.FullClear()
+	f.Fuzz(func(t *testing.T, a int64, b int64) {
+		smallCrate.Reset()
+		var c, d int64
+		var cBytes, dBytes uint64
+		bytesA, bytesB := findVarintBytesFromValue(a), findVarintBytesFromValue(b)
+		bytesTotal := bytesA + bytesB
+		smallCrate.AccessVarint(&a, lite.Write)
+		smallCrate.AccessVarint(&b, lite.Write)
+		smallCrate.AccessVarint(&c, lite.Peek)
+		if c != a {
+			t.Errorf("PeekVarint - FAIL: %d != %d", c, a)
+		}
+		if smallCrate.ReadIndex() != 0 {
+			t.Error("PeekVarint - FAIL: index was increased")
+		}
+		smallCrate.AccessVarint(nil, lite.Discard)
+		if smallCrate.ReadIndex() != bytesA {
+			t.Error("DiscardVarint - FAIL: index != ", bytesA)
+		}
+		if smallCrate.WriteIndex() != bytesTotal {
+			t.Error("WriteVarint - FAIL: index != ", bytesTotal)
+		}
+		_, slice := smallCrate.AccessVarint(&b, lite.Slice)
+		if uint64(len(slice)) != bytesB || uint64(cap(slice)) != bytesB {
+			t.Error("SliceVarint - FAIL: len != ", bytesB, " and/or cap != ", bytesB)
+		}
+		recvCrate := lite.OpenCrate(smallCrate.Data(), lite.FlagManualExact)
+		c, cBytes = recvCrate.ReadVarint()
+		d, dBytes = recvCrate.ReadVarint()
+		if a != c || b != d {
+			t.Errorf("Read/Write Varint - FAIL (value): %d != %d and/or %d != %d", a, c, b, d)
+		}
+		if bytesA != cBytes || bytesB != dBytes {
+			t.Errorf("Read/Write Varint - FAIL (bytes): %d != %d and/or %d != %d ", bytesA, cBytes, bytesB, dBytes)
+		}
+		if recvCrate.ReadIndex() != bytesTotal {
+			t.Error("ReadVarint - FAIL: index != ", bytesTotal)
+		}
+	})
+}
+
+func FuzzLengthOrNil(f *testing.F) {
+	f.Add(uint64(10), uint64(1000), false, false)
+	smallCrate.FullClear()
+	f.Fuzz(func(t *testing.T, a uint64, b uint64, aNil bool, bNil bool) {
+		smallCrate.Reset()
+		var n uint64 = 0
+		nNil := true
+		var c, d, e, cBytes, dBytes, eBytes uint64
+		var cNil, dNil, eNil bool
+		a = (a % 18446744073709551615)
+		b = (b % 18446744073709551615)
+		if aNil {
+			a = 0
+		}
+		if bNil {
+			b = 0
+		}
+		bytesA, bytesB, bytesN := findUVarintBytesFromValue(a+1), findUVarintBytesFromValue(b+1), findUVarintBytesFromValue(n)
+		bytesTotal := bytesA + bytesB + bytesN
+		smallCrate.AccessLengthOrNil(&a, aNil, lite.Write)
+		smallCrate.AccessLengthOrNil(&b, bNil, lite.Write)
+		smallCrate.AccessLengthOrNil(&n, nNil, lite.Write)
+		smallCrate.AccessLengthOrNil(&c, cNil, lite.Peek)
+		if c != a {
+			t.Errorf("PeekLengthOrNil - FAIL: %d != %d", c, a)
+		}
+		if smallCrate.ReadIndex() != 0 {
+			t.Error("PeekLengthOrNil - FAIL: index was increased")
+		}
+		smallCrate.AccessLengthOrNil(nil, false, lite.Discard)
+		if smallCrate.ReadIndex() != bytesA {
+			t.Error("DiscardLengthOrNil - FAIL: index != ", bytesA)
+		}
+		if smallCrate.WriteIndex() != bytesTotal {
+			t.Error("WriteLengthOrNil - FAIL: index != ", bytesTotal)
+		}
+		_, _, slice := smallCrate.AccessLengthOrNil(&b, false, lite.Slice)
+		if uint64(len(slice)) != bytesB || uint64(cap(slice)) != bytesB {
+			t.Error("SliceLengthOrNil - FAIL: len != ", bytesB, " and/or cap != ", bytesB)
+		}
+		recvCrate := lite.OpenCrate(smallCrate.Data(), lite.FlagManualExact)
+		c, cNil, cBytes = recvCrate.ReadLengthOrNil()
+		d, dNil, dBytes = recvCrate.ReadLengthOrNil()
+		e, eNil, eBytes = recvCrate.ReadLengthOrNil()
+		if a != c || b != d || n != e {
+			t.Errorf("Read/Write LengthOrNil - FAIL (value): %d != %d and/or %d != %d and/or %d != %d", a, c, b, d, n, e)
+		}
+		if aNil != cNil || bNil != dNil || nNil != eNil {
+			t.Errorf("Read/Write LengthOrNil - FAIL (nility): %v != %v and/or %v != %v and/or %v != %v", aNil, cNil, bNil, dNil, nNil, eNil)
+		}
+		if bytesA != cBytes || bytesB != dBytes || bytesN != eBytes {
+			t.Errorf("Read/Write LengthOrNil - FAIL (bytes): %d != %d and/or %d != %d and/or %d != %d", bytesA, cBytes, bytesB, dBytes, bytesN, eBytes)
+		}
+		if recvCrate.ReadIndex() != bytesTotal {
+			t.Error("ReadLengthOrNil - FAIL: index != ", bytesTotal)
 		}
 	})
 }

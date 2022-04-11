@@ -2425,330 +2425,308 @@ func (c *Crate) AccessC128(val *complex128, mode AccessMode) (sliceModeData []by
 }
 
 /**************
-	COUNTER
+	UVARINT
 ***************/
 
 const (
 	continueMask   = 128
 	countMask      = 127
 	finalCountMask = 255
-	countShift1    = 0
-	countShift2    = 7
-	countShift3    = 14
-	countShift4    = 21
-	countShift5    = 28
-	countShift6    = 35
-	countShift7    = 42
-	countShift8    = 49
-	countShift9    = 56
+	countShift     = 7
+	u64Longer      = 18446744073709551488
 )
 
-// Read length counter (uint64) from data into dst,
+var countMasks = [9]byte{countMask, countMask, countMask, countMask, countMask, countMask, countMask, countMask, finalCountMask}
+
+// Read msb uvarint encoded uint64 from data into dst,
 // using 1-9 bytes dependant on length.
-// Returns the number of bytes read and whether the value represents nil instead of zero
-func ReadLength[T isU64](data []byte, dst *T) (bytesRead uint64, isNil bool) {
+// Returns the number of bytes read
+func ReadUVarint[T isU64](data []byte, dst *T) (bytesRead uint64) {
 	_ = data[len(data)-1]
-	b := data[0]
-	var val uint64 = 0
-	count := uint64(b & countMask)
-	longer := (b & continueMask) > 0
-	val |= count << countShift1
-	if !longer {
-		if val == 0 {
-			*(*uint64)(unsafe.Pointer(dst)) = val
-			return 1, true
-		}
-		*(*uint64)(unsafe.Pointer(dst)) = val - 1
-		return 1, false
+	longer := true
+	var val, i uint64 = 0, 0
+	for ; longer && i < 9; i += 1 {
+		longer = data[i]&continueMask == continueMask
+		val |= uint64(data[i]&countMasks[i]) << (i * countShift)
 	}
-	b = data[1]
-	count = uint64(b & countMask)
-	longer = (b & continueMask) > 0
-	val |= count << countShift2
-	if !longer {
-		*(*uint64)(unsafe.Pointer(dst)) = val - 1
-		return 2, false
-	}
-	b = data[2]
-	count = uint64(b & countMask)
-	longer = (b & continueMask) > 0
-	val |= count << countShift3
-	if !longer {
-		*(*uint64)(unsafe.Pointer(dst)) = val - 1
-		return 3, false
-	}
-	b = data[3]
-	count = uint64(b & countMask)
-	longer = (b & continueMask) > 0
-	val |= count << countShift4
-	if !longer {
-		*(*uint64)(unsafe.Pointer(dst)) = val - 1
-		return 4, false
-	}
-	b = data[4]
-	count = uint64(b & countMask)
-	longer = (b & continueMask) > 0
-	val |= count << countShift5
-	if !longer {
-		*(*uint64)(unsafe.Pointer(dst)) = val - 1
-		return 5, false
-	}
-	b = data[5]
-	count = uint64(b & countMask)
-	longer = (b & continueMask) > 0
-	val |= count << countShift6
-	if !longer {
-		*(*uint64)(unsafe.Pointer(dst)) = val - 1
-		return 6, false
-	}
-	b = data[6]
-	count = uint64(b & countMask)
-	longer = (b & continueMask) > 0
-	val |= count << countShift7
-	if !longer {
-		*(*uint64)(unsafe.Pointer(dst)) = val - 1
-		return 7, false
-	}
-	b = data[7]
-	count = uint64(b & countMask)
-	longer = (b & continueMask) > 0
-	val |= count << countShift8
-	if !longer {
-		*(*uint64)(unsafe.Pointer(dst)) = val - 1
-		return 8, false
-	}
-	b = data[8]
-	count = uint64(b & finalCountMask)
-	val |= count << countShift9
-	*(*uint64)(unsafe.Pointer(dst)) = val - 1
-	return 9, false
+	*(*uint64)(unsafe.Pointer(dst)) = val
+	return i
 }
 
-// Write length counter (uint64) from src into data, with special behavior for representing nil.
-// Uses 1-9 bytes dependant on length, returns number of bytes written
-func WriteLength[T isU64](data []byte, src T, isNil bool) (bytesWritten uint64) {
+// Write uint64 from src into data as msb uvarint,
+// using 1-9 bytes dependant on length.
+// Returns the number of bytes written
+func WriteUVarint[T isU64](data []byte, src T) (bytesWritten uint64) {
 	_ = data[len(data)-1]
-	if isNil {
+	var val, i, longer uint64 = *(*uint64)(unsafe.Pointer(&src)), 0, 0
+	if val == 0 {
 		data[0] = 0
 		return 1
 	}
-	val := *(*uint64)(unsafe.Pointer(&src)) + 1
-	count := (val & countMask)
-	val = val >> countShift2
-	longer := val > 0
-	b := count
-	if longer {
-		b |= continueMask
+	for ; val > 0; i += 1 {
+		val = val >> (countShift * i)
+		longer = val & u64Longer
+		longer |= longer >> 1
+		longer |= longer >> 2
+		longer |= longer >> 4
+		longer |= longer >> 8
+		longer |= longer >> 16
+		longer |= longer >> 32
+		data[i] = byte(val&countMask) | byte(longer&continueMask)
 	}
-	data[0] = byte(b)
-	if !longer {
-		return 1
-	}
-	count = (val & countMask)
-	val = val >> countShift3
-	longer = val > 0
-	b = count
-	if longer {
-		b |= continueMask
-	}
-	data[1] = byte(b)
-	if !longer {
-		return 2
-	}
-	count = (val & countMask)
-	val = val >> countShift4
-	longer = val > 0
-	b = count
-	if longer {
-		b |= continueMask
-	}
-	data[2] = byte(b)
-	if !longer {
-		return 3
-	}
-	count = (val & countMask)
-	val = val >> countShift5
-	longer = val > 0
-	b = count
-	if longer {
-		b |= continueMask
-	}
-	data[3] = byte(b)
-	if !longer {
-		return 4
-	}
-	count = (val & countMask)
-	val = val >> countShift6
-	longer = val > 0
-	b = count
-	if longer {
-		b |= continueMask
-	}
-	data[4] = byte(b)
-	if !longer {
-		return 5
-	}
-	count = (val & countMask)
-	val = val >> countShift7
-	longer = val > 0
-	b = count
-	if longer {
-		b |= continueMask
-	}
-	data[5] = byte(b)
-	if !longer {
-		return 6
-	}
-	count = (val & countMask)
-	val = val >> countShift8
-	longer = val > 0
-	b = count
-	if longer {
-		b |= continueMask
-	}
-	data[6] = byte(b)
-	if !longer {
-		return 7
-	}
-	count = (val & countMask)
-	val = val >> countShift9
-	longer = val > 0
-	b = count
-	if longer {
-		b |= continueMask
-	}
-	data[7] = byte(b)
-	if !longer {
-		return 8
-	}
-	data[8] = byte(val)
-	return 9
+	return i
 }
 
-func findLengthBytesFromData(data []byte) uint64 {
-	_ = data[len(data)-1]
-	longer := (data[0] & continueMask) > 0
-	if !longer {
-		return 1
-	}
-	longer = (data[1] & continueMask) > 0
-	if !longer {
-		return 2
-	}
-	longer = (data[2] & continueMask) > 0
-	if !longer {
-		return 3
-	}
-	longer = (data[3] & continueMask) > 0
-	if !longer {
-		return 4
-	}
-	longer = (data[4] & continueMask) > 0
-	if !longer {
-		return 5
-	}
-	longer = (data[5] & continueMask) > 0
-	if !longer {
-		return 6
-	}
-	longer = (data[6] & continueMask) > 0
-	if !longer {
-		return 7
-	}
-	longer = (data[7] & continueMask) > 0
-	if !longer {
-		return 8
-	}
-	return 9
+// Discard next 1-9 unread bytes in crate,
+// dependant on size of the UVarint
+func (c *Crate) DiscardUVarint() (bytesDiscarded uint64) {
+	n := findUVarintBytesFromData(c.data[c.read:])
+	c.DiscardN(n)
+	return n
 }
 
-func findLengthBytesFromValue(length uint64, isNil bool) uint64 {
-	length += 1
-	switch {
-	case isNil:
-		return 1
-	case length <= 127:
-		return 1
-	case length <= 16383:
-		return 2
-	case length <= 2097151:
-		return 3
-	case length <= 268435455:
-		return 4
-	case length <= 34359738367:
-		return 5
-	case length <= 4398046511103:
-		return 6
-	case length <= 562949953421311:
-		return 7
-	case length <= 72057594037927935:
-		return 8
+// Return byte slice the next unread UVarint (uint64) occupies
+func (c *Crate) SliceUVarint() (slice []byte) {
+	print("")
+	n := findUVarintBytesFromData(c.data[c.read:])
+	return c.data[c.read : c.read+n : c.read+n]
+}
+
+// Write uint64 to crate as msb uvarint.
+// Uses 1-9 bytes dependant on size of value
+func (c *Crate) WriteUVarint(val uint64) (bytesWritten uint64) {
+	bytes := findUVarintBytesFromValue(val)
+	c.CheckWrite(bytes)
+	WriteUVarint(c.data[c.write:], val)
+	c.write += bytes
+	return bytes
+}
+
+// Read next 1-9 bytes from crate as msb uvarint encoded uint64
+func (c *Crate) ReadUVarint() (val uint64, bytesRead uint64) {
+	n := findUVarintBytesFromData(c.data[c.read:])
+	c.CheckRead(n)
+	bytesRead = ReadUVarint(c.data[c.read:], &val)
+	c.read += bytesRead
+	return val, bytesRead
+}
+
+// Read next 1-9 bytes from crate as msb uvarint encoded uint64
+// without advancing read index
+func (c *Crate) PeekUVarint() (val uint64, bytesRead uint64) {
+	n := findUVarintBytesFromData(c.data[c.read:])
+	c.CheckRead(n)
+	bytesRead = ReadUVarint(c.data[c.read:], &val)
+	return val, bytesRead
+}
+
+// Use the uint64 pointed to by val as a msb uvarint according to mode:
+// Write = 'write val into crate', Read = 'read from crate into val',
+// Peek = 'read from crate into val without advancing index'
+// Slice = 'Return the slice the next unread val occupies without altering val'
+func (c *Crate) AccessUVarint(val *uint64, mode AccessMode) (bytesUsed uint64, sliceModeData []byte) {
+	switch mode {
+	case Write:
+		bytesUsed = c.WriteUVarint(*val)
+	case Read:
+		*val, bytesUsed = c.ReadUVarint()
+	case Peek:
+		*val, bytesUsed = c.PeekUVarint()
+	case Discard:
+		bytesUsed = c.DiscardUVarint()
+	case Slice:
+		sliceModeData = c.SliceUVarint()
 	default:
-		return 9
+		panic("LiteCrate: Invalid mode passed to AccessUVarint()")
 	}
+	return bytesUsed, sliceModeData
+}
+
+/**************
+	VARINT
+***************/
+
+// Read msb zig-zag varint encoded int64 from data into dst,
+// using 1-9 bytes dependant on size.
+// Returns the number of bytes read
+func ReadVarint[T isI64](data []byte, dst *T) (bytesRead uint64) {
+	var uVal uint64
+	bytes := ReadUVarint(data, &uVal)
+	iVal := zigZagDecode(uVal)
+	*(*int64)(unsafe.Pointer(dst)) = iVal
+	return bytes
+}
+
+// Write int64 from src into data as msb zig-zag varint,
+// using 1-9 bytes dependant on size.
+// Returns the number of bytes written
+func WriteVarint[T isI64](data []byte, src T) (bytesWritten uint64) {
+	var iVal int64 = *(*int64)(unsafe.Pointer(&src))
+	uVal := zigZagEncode(iVal)
+	bytes := WriteUVarint(data, uVal)
+	return bytes
+}
+
+// Discard next 1-9 unread bytes in crate,
+// dependant on size of the UVarint
+func (c *Crate) DiscardVarint() (bytesDiscarded uint64) {
+	n := findUVarintBytesFromData(c.data[c.read:])
+	c.DiscardN(n)
+	return n
+}
+
+// Return byte slice the next unread Varint (int64) occupies
+func (c *Crate) SliceVarint() (slice []byte) {
+	n := findUVarintBytesFromData(c.data[c.read:])
+	return c.data[c.read : c.read+n : c.read+n]
+}
+
+// Write int64 to crate as msb zig-zag varint.
+// Uses 1-9 bytes dependant on size of value
+func (c *Crate) WriteVarint(val int64) (bytesWritten uint64) {
+	bytes := findVarintBytesFromValue(val)
+	c.CheckWrite(bytes)
+	WriteVarint(c.data[c.write:], val)
+	c.write += bytes
+	return bytes
+}
+
+// Read next 1-9 bytes from crate as msb zig-zag varint encoded int64
+func (c *Crate) ReadVarint() (val int64, bytesRead uint64) {
+	n := findUVarintBytesFromData(c.data[c.read:])
+	c.CheckRead(n)
+	bytesRead = ReadVarint(c.data[c.read:], &val)
+	c.read += bytesRead
+	return val, bytesRead
+}
+
+// Read next 1-9 bytes from crate as msb zig-zag varint encoded int64
+// without advancing read index
+func (c *Crate) PeekVarint() (val int64, bytesRead uint64) {
+	n := findUVarintBytesFromData(c.data[c.read:])
+	c.CheckRead(n)
+	bytesRead = ReadVarint(c.data[c.read:], &val)
+	return val, bytesRead
+}
+
+// Use the int64 pointed to by val as a msb zig-zag varint according to mode:
+// Write = 'write val into crate', Read = 'read from crate into val',
+// Peek = 'read from crate into val without advancing index'
+// Slice = 'Return the slice the next unread val occupies without altering val'
+func (c *Crate) AccessVarint(val *int64, mode AccessMode) (bytesUsed uint64, sliceModeData []byte) {
+	switch mode {
+	case Write:
+		bytesUsed = c.WriteVarint(*val)
+	case Read:
+		*val, bytesUsed = c.ReadVarint()
+	case Peek:
+		*val, bytesUsed = c.PeekVarint()
+	case Discard:
+		bytesUsed = c.DiscardVarint()
+	case Slice:
+		sliceModeData = c.SliceVarint()
+	default:
+		panic("LiteCrate: Invalid mode passed to AccessVarint()")
+	}
+	return bytesUsed, sliceModeData
+}
+
+/**************
+	LENGTH-OR-NIL-COUNTER
+***************/
+
+// Read length or nil (UVarint where 0 = nil, 1 = 0, 2 = 1...) from data into dst,
+// using 1-9 bytes dependant on length.
+// Returns the number of bytes read and whether the value represents nil instead of zero
+func ReadLengthOrNil[T isU64](data []byte, dst *T) (bytesRead uint64, isNil bool) {
+	var val uint64
+	bytes := ReadUVarint(data, &val)
+	isNil = val == 0
+	if !isNil {
+		val -= 1
+	}
+	*(*uint64)(unsafe.Pointer(dst)) = val
+	return bytes, isNil
+}
+
+// Write length or nil (UVarint where 0 = nil, 1 = 0, 2 = 1...) from src into data.
+// Uses 1-9 bytes dependant on length, returns number of bytes written
+//
+// Because 0 is used to represent nil, the maximum length that can be written is
+// 18446744073709551614 (WILL NOT check value for correctness)
+func WriteLengthOrNil[T isU64](data []byte, src T, isNil bool) (bytesWritten uint64) {
+	val := *(*uint64)(unsafe.Pointer(&src)) + 1
+	if isNil {
+		val = 0
+	}
+	bytes := WriteUVarint(data, val)
+	return bytes
 }
 
 // Discard next 1-9 unread bytes in crate,
 // dependant on length of length counter
-func (c *Crate) DiscardLength() (bytesDiscarded uint64) {
-	n := findLengthBytesFromData(c.data[c.read:])
+func (c *Crate) DiscardLengthOrNil() (bytesDiscarded uint64) {
+	n := findUVarintBytesFromData(c.data[c.read:])
 	c.DiscardN(n)
 	return n
 }
 
 // Return byte slice the next unread length counter occupies
-func (c *Crate) SliceLength() (slice []byte) {
-	n := findLengthBytesFromData(c.data[c.read:])
+func (c *Crate) SliceLengthOrNil() (slice []byte) {
+	n := findUVarintBytesFromData(c.data[c.read:])
 	return c.data[c.read : c.read+n : c.read+n]
 }
 
-// Write length counter (uint64) to crate, with special behavior for representing nil.
+// Write length or nil (UVarint where 0 = nil, 1 = 0, 2 = 1...) to crate.
 // Uses 1-9 bytes dependant on length
-func (c *Crate) WriteLength(length uint64, isNil bool) (bytesWritten uint64) {
-	bytes := findLengthBytesFromValue(length, isNil)
+//
+// Because 0 is used to represent nil, the maximum length that can be written is
+// 18446744073709551614 (WILL NOT check value for correctness)
+func (c *Crate) WriteLengthOrNil(length uint64, isNil bool) (bytesWritten uint64) {
+	bytes := findUVarintBytesFromValue(length + 1)
 	c.CheckWrite(bytes)
-	WriteLength(c.data[c.write:], length, isNil)
+	WriteLengthOrNil(c.data[c.write:], length, isNil)
 	c.write += bytes
 	return bytes
 }
 
-// Read next 1-9 bytes from crate as length counter (uint64),
-// with a special indicator for representing nil
-func (c *Crate) ReadLength() (length uint64, isNil bool, bytesRead uint64) {
-	n := findLengthBytesFromData(c.data[c.read:])
+// Read next 1-9 bytes from crate as length or nil (UVarint where 0 = nil, 1 = 0, 2 = 1...),
+func (c *Crate) ReadLengthOrNil() (length uint64, isNil bool, bytesRead uint64) {
+	n := findUVarintBytesFromData(c.data[c.read:])
 	c.CheckRead(n)
-	bytesRead, isNil = ReadLength(c.data[c.read:], &length)
+	bytesRead, isNil = ReadLengthOrNil(c.data[c.read:], &length)
 	c.read += bytesRead
 	return length, isNil, bytesRead
 }
 
-// Read next 1-9 bytes from crate as length counter (uint64) without advancing read index,
-// with a special indicator for representing nil
-func (c *Crate) PeekLength() (length uint64, isNil bool, bytesRead uint64) {
-	n := findLengthBytesFromData(c.data[c.read:])
+// Read next 1-9 bytes from crate as length or nil (UVarint where 0 = nil, 1 = 0, 2 = 1...)
+// without advancing read index
+func (c *Crate) PeekLengthOrNil() (length uint64, isNil bool, bytesRead uint64) {
+	n := findUVarintBytesFromData(c.data[c.read:])
 	c.CheckRead(n)
-	bytesRead, isNil = ReadLength(c.data[c.read:], &length)
+	bytesRead, isNil = ReadLengthOrNil(c.data[c.read:], &length)
 	return length, isNil, bytesRead
 }
 
-// Use the length counter (uint64) pointed to by val according to mode:
-// Write = 'write val into crate', Read = 'read from crate into val',
-// Peek = 'read from crate into val without advancing index'
-// Slice = 'Return the slice the next unread val occupies without altering val'
-func (c *Crate) AccessLength(val *uint64, writeNil bool, mode AccessMode) (readNil bool, bytesUsed uint64, sliceModeData []byte) {
+// Use the length pointed to and writeNil/readNil (in Write/Read mode)
+// as a UVarint where 0 = nil, 1 = 0, 2 = 1..., according to mode:
+// Write = 'write length or nil into crate', Read = 'read from crate into lenth and return readNil if nil',
+// Peek = 'read from crate into lenth and return readNil if nil, without advancing index'
+// Slice = 'Return the slice the next unread length-or-nil occupies without altering length'
+func (c *Crate) AccessLengthOrNil(length *uint64, writeNil bool, mode AccessMode) (readNil bool, bytesUsed uint64, sliceModeData []byte) {
 	switch mode {
 	case Write:
-		bytesUsed = c.WriteLength(*val, writeNil)
+		bytesUsed = c.WriteLengthOrNil(*length, writeNil)
 	case Read:
-		*val, readNil, bytesUsed = c.ReadLength()
+		*length, readNil, bytesUsed = c.ReadLengthOrNil()
 	case Peek:
-		*val, readNil, bytesUsed = c.PeekLength()
+		*length, readNil, bytesUsed = c.PeekLengthOrNil()
 	case Discard:
-		bytesUsed = c.DiscardLength()
+		bytesUsed = c.DiscardLengthOrNil()
 	case Slice:
-		sliceModeData = c.SliceLength()
+		sliceModeData = c.SliceLengthOrNil()
 	default:
-		panic("LiteCrate: Invalid mode passed to AccessLength()")
+		panic("LiteCrate: Invalid mode passed to AccessLengthOrNil()")
 	}
 	return readNil, bytesUsed, sliceModeData
 }
@@ -2775,7 +2753,7 @@ func ReadString[T isString](data []byte, length uint64, dst *T) {
 // Read string with preceding length counter from data into dst
 func ReadStringWithCounter[T isString](data []byte, dst *T) {
 	var length, n uint64
-	n, _ = ReadLength(data, &length)
+	n, _ = ReadLengthOrNil(data, &length)
 	ReadString(data[n:], length, dst)
 }
 
@@ -2791,7 +2769,7 @@ func WriteString[T isString](data []byte, src T) {
 // Write string with preceding length counter from src into data,
 func WriteStringWithCounter[T isString](data []byte, src T) {
 	length := uint64((*stringInternals)(unsafe.Pointer(&src)).length)
-	start := WriteLength(data, length, false)
+	start := WriteLengthOrNil(data, length, false)
 	_ = data[start+length]
 	bytes := make([]byte, length, length)
 	(*sliceInternals)(unsafe.Pointer(&bytes)).data = (*stringInternals)(unsafe.Pointer(&src)).data
@@ -2811,13 +2789,13 @@ func (c *Crate) SliceString(length uint64) (slice []byte) {
 // Discard next unread string with preceding length counter in crate
 func (c *Crate) DiscardStringWithCounter() {
 	var length, n uint64
-	n, _ = ReadLength(c.data[c.read:], &length)
+	n, _ = ReadLengthOrNil(c.data[c.read:], &length)
 	c.DiscardN(length + n)
 }
 
 // Return byte slice the next unread string-with-length-counter occupies (not including counter)
 func (c *Crate) SliceStringWithCounter() (slice []byte) {
-	length, _, n := c.PeekLength()
+	length, _, n := c.PeekLengthOrNil()
 	return c.data[c.read+n : c.read+n+length : c.read+n+length]
 }
 
@@ -2832,7 +2810,7 @@ func (c *Crate) WriteString(val string) {
 // Write string to crate with preceding length counter
 func (c *Crate) WriteStringWithCounter(val string) {
 	length := len64str(val)
-	c.WriteLength(length, false)
+	c.WriteLengthOrNil(length, false)
 	c.CheckWrite(length)
 	WriteString(c.data[c.write:], val)
 	c.write += length
@@ -2848,7 +2826,7 @@ func (c *Crate) ReadString(length uint64) (val string) {
 
 // Read next string with preceding length counter from crate
 func (c *Crate) ReadStringWithCounter() (val string) {
-	length, _, _ := c.ReadLength()
+	length, _, _ := c.ReadLengthOrNil()
 	c.CheckRead(length)
 	ReadString(c.data[c.read:], length, &val)
 	c.read += length
@@ -2864,7 +2842,7 @@ func (c *Crate) PeekString(length uint64) (val string) {
 
 // Read next string with preceding length counter from crate without advancing read index
 func (c *Crate) PeekStringWithCounter() (val string) {
-	length, _, n := c.ReadLength()
+	length, _, n := c.ReadLengthOrNil()
 	c.CheckRead(length)
 	ReadString(c.data[c.read:], length, &val)
 	c.read -= n
@@ -2939,7 +2917,7 @@ func ReadBytes[T isByteSlice](data []byte, length uint64, dst *T) {
 func ReadBytesWithCounter[T isByteSlice](data []byte, dst *T) {
 	var length, n uint64
 	isNil := false
-	n, isNil = ReadLength(data, &length)
+	n, isNil = ReadLengthOrNil(data, &length)
 	if isNil {
 		*(*[]byte)(unsafe.Pointer(dst)) = nil
 		return
@@ -2958,7 +2936,7 @@ func WriteBytesWithCounter[T isString](data []byte, src T) {
 	bytes := *(*[]byte)(unsafe.Pointer(&src))
 	length := len64(bytes)
 	isNil := data == nil
-	start := WriteLength(data, length, isNil)
+	start := WriteLengthOrNil(data, length, isNil)
 	if isNil || length == 0 {
 		return
 	}
@@ -2979,13 +2957,13 @@ func (c *Crate) SliceBytes(length uint64) (slice []byte) {
 // Discard next unread bytes with preceding length counter in crate
 func (c *Crate) DiscardBytesWithCounter() {
 	var length, n uint64
-	n, _ = ReadLength(c.data[c.read:], &length)
+	n, _ = ReadLengthOrNil(c.data[c.read:], &length)
 	c.DiscardN(length + n)
 }
 
 // Return byte slice the next unread bytes-with-length-counter occupies (not including counter)
 func (c *Crate) SliceBytesWithCounter() (slice []byte) {
-	length, _, n := c.PeekLength()
+	length, _, n := c.PeekLengthOrNil()
 	return c.data[c.read+n : c.read+n+length : c.read+n+length]
 }
 
@@ -3001,7 +2979,7 @@ func (c *Crate) WriteBytes(val []byte) {
 func (c *Crate) WriteBytesWithCounter(val []byte) {
 	length := len64(val)
 	isNil := val == nil
-	c.WriteLength(length, isNil)
+	c.WriteLengthOrNil(length, isNil)
 	if isNil || length == 0 {
 		return
 	}
@@ -3020,7 +2998,7 @@ func (c *Crate) ReadBytes(length uint64) (val []byte) {
 
 // Read next bytes slice with preceding length counter from crate
 func (c *Crate) ReadBytesWithCounter() (val []byte) {
-	length, isNil, _ := c.ReadLength()
+	length, isNil, _ := c.ReadLengthOrNil()
 	if isNil {
 		return nil
 	}
@@ -3039,7 +3017,7 @@ func (c *Crate) PeekBytes(length uint64) (val []byte) {
 
 // Read next bytes slice with preceding length counter from crate without advancing read index
 func (c *Crate) PeekBytesWithCounter() (val []byte) {
-	length, isNil, n := c.ReadLength()
+	length, isNil, n := c.ReadLengthOrNil()
 	if isNil {
 		c.read -= n
 		return nil
@@ -3172,7 +3150,7 @@ type AccessFunc[T any] func(val *T, mode AccessMode) (sliceModeData []byte)
 func AccessSlice[T any](crate *Crate, mode AccessMode, slice *[]T, accessElementFunc AccessFunc[T]) (sliceModeData []byte) {
 	length := len64(*slice)
 	writeNil := *slice == nil
-	readNil, _, _ := crate.AccessLength(&length, writeNil, mode)
+	readNil, _, _ := crate.AccessLengthOrNil(&length, writeNil, mode)
 	switch mode {
 	case Read, Peek:
 		if readNil {
@@ -3225,7 +3203,7 @@ func AccessSlice[T any](crate *Crate, mode AccessMode, slice *[]T, accessElement
 func AccessMap[K comparable, V any](crate *Crate, mode AccessMode, Map *map[K]V, accessKeyFunc AccessFunc[K], accessValFunc AccessFunc[V]) (sliceModeData []byte) {
 	mapLen := len64map(*Map)
 	writeNil := *Map == nil
-	readNil, _, _ := crate.AccessLength(&mapLen, writeNil, mode)
+	readNil, _, _ := crate.AccessLengthOrNil(&mapLen, writeNil, mode)
 	switch mode {
 	case Read, Peek:
 		if readNil {
@@ -3270,6 +3248,52 @@ func AccessMap[K comparable, V any](crate *Crate, mode AccessMode, Map *map[K]V,
 /**************
 	INTERNAL
 ***************/
+
+func zigZagEncode(iVal int64) uint64 {
+	return uint64((iVal << 1) ^ (iVal >> 63))
+}
+
+func zigZagDecode(uVal uint64) int64 {
+	return int64((uVal >> 1) ^ -(uVal & 1))
+}
+
+func findUVarintBytesFromData(data []byte) uint64 {
+	_ = data[len(data)-1]
+	var i uint64 = 0
+	longer := true
+	for ; longer && i < 9; i += 1 {
+		longer = data[i]&continueMask > 0
+	}
+	return i
+}
+
+func findUVarintBytesFromValue(value uint64) uint64 {
+	switch {
+	case value <= 127:
+		return 1
+	case value <= 16383:
+		return 2
+	case value <= 2097151:
+		return 3
+	case value <= 268435455:
+		return 4
+	case value <= 34359738367:
+		return 5
+	case value <= 4398046511103:
+		return 6
+	case value <= 562949953421311:
+		return 7
+	case value <= 72057594037927935:
+		return 8
+	default:
+		return 9
+	}
+}
+
+func findVarintBytesFromValue(value int64) uint64 {
+	uVal := zigZagEncode(value)
+	return findUVarintBytesFromValue(uVal)
+}
 
 const (
 	maxU24  = 16777215
