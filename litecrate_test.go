@@ -1206,10 +1206,10 @@ func FuzzUVarint(f *testing.F) {
 		}
 		smallCrate.AccessUVarint(nil, lite.Discard)
 		if smallCrate.ReadIndex() != bytesA {
-			t.Error("DiscardUVarint - FAIL: index != ", bytesA)
+			t.Errorf("DiscardUVarint - FAIL: index %d != %d", smallCrate.ReadIndex(), bytesA)
 		}
 		if smallCrate.WriteIndex() != bytesTotal {
-			t.Error("WriteUVarint - FAIL: index != ", bytesTotal)
+			t.Errorf("WriteUVarint - FAIL: index %d != %d", smallCrate.WriteIndex(), bytesTotal)
 		}
 		_, slice := smallCrate.AccessUVarint(&b, lite.Slice)
 		if uint64(len(slice)) != bytesB || uint64(cap(slice)) != bytesB {

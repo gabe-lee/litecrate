@@ -290,18 +290,6 @@ func (c *Crate) DiscardN(n uint64) {
 	BOOL
 ***************/
 
-type isBool interface{ ~bool }
-
-// Read bool from data into dst
-func ReadBool[T isBool](data []byte, dst *T) {
-	*(*uint8)(unsafe.Pointer(dst)) = data[0]
-}
-
-// Write bool from src into data
-func WriteBool[T isBool](data []byte, src T) {
-	data[0] = *(*uint8)(unsafe.Pointer(&src))
-}
-
 // Discard next unread byte in crate
 func (c *Crate) DiscardBool() {
 	c.DiscardN(1)
@@ -309,20 +297,20 @@ func (c *Crate) DiscardBool() {
 
 // Return byte slice the next unread bool occupies
 func (c *Crate) SliceBool() (slice []byte) {
+	c.CheckRead(1)
 	return c.data[c.read : c.read+1 : c.read+1]
 }
 
 // Write bool to crate
 func (c *Crate) WriteBool(val bool) {
 	c.CheckWrite(1)
-	WriteBool(c.data[c.write:], val)
+	c.data[c.write] = *(*uint8)(unsafe.Pointer(&val))
 	c.write += 1
 }
 
 // Read next byte from crate as bool
 func (c *Crate) ReadBool() (val bool) {
-	c.CheckRead(1)
-	ReadBool(c.data[c.read:], &val)
+	val = c.PeekBool()
 	c.read += 1
 	return val
 }
@@ -330,7 +318,7 @@ func (c *Crate) ReadBool() (val bool) {
 // Read next byte from crate as bool without advancing read index
 func (c *Crate) PeekBool() (val bool) {
 	c.CheckRead(1)
-	ReadBool(c.data[c.read:], &val)
+	val = *(*bool)(unsafe.Pointer(&c.data[c.read]))
 	return val
 }
 
@@ -360,18 +348,6 @@ func (c *Crate) AccessBool(val *bool, mode AccessMode) (sliceModeData []byte) {
 	UINT8/BYTE
 ***************/
 
-type isU8 interface{ ~uint8 }
-
-// Read uint8 from data into dst
-func ReadU8[T isU8](data []byte, dst *T) {
-	*(*uint8)(unsafe.Pointer(dst)) = data[0]
-}
-
-// Write uint8 from src into data
-func WriteU8[T isU8](data []byte, src T) {
-	data[0] = *(*uint8)(unsafe.Pointer(&src))
-}
-
 // Discard next unread byte in crate
 func (c *Crate) DiscardU8() {
 	c.DiscardN(1)
@@ -379,20 +355,20 @@ func (c *Crate) DiscardU8() {
 
 // Return byte slice the next unread uint8 occupies
 func (c *Crate) SliceU8() (slice []byte) {
+	c.CheckRead(1)
 	return c.data[c.read : c.read+1 : c.read+1]
 }
 
 // Write uint8 to crate
 func (c *Crate) WriteU8(val uint8) {
 	c.CheckWrite(1)
-	WriteU8(c.data[c.write:], val)
+	c.data[c.write] = val
 	c.write += 1
 }
 
 // Read next byte from crate as uint8
 func (c *Crate) ReadU8() (val uint8) {
-	c.CheckRead(1)
-	ReadU8(c.data[c.read:], &val)
+	val = c.PeekU8()
 	c.read += 1
 	return val
 }
@@ -400,7 +376,7 @@ func (c *Crate) ReadU8() (val uint8) {
 // Read next byte from crate as uint8 without advancing read index
 func (c *Crate) PeekU8() (val uint8) {
 	c.CheckRead(1)
-	ReadU8(c.data[c.read:], &val)
+	val = c.data[c.read]
 	return val
 }
 
@@ -426,16 +402,6 @@ func (c *Crate) AccessU8(val *uint8, mode AccessMode) (sliceModeData []byte) {
 	return sliceModeData
 }
 
-// Read byte from data into dst
-func ReadByte[T isU8](data []byte, dst *T) {
-	*(*uint8)(unsafe.Pointer(dst)) = data[0]
-}
-
-// Write byte from src into data
-func WriteByte[T isU8](data []byte, src T) {
-	data[0] = *(*uint8)(unsafe.Pointer(&src))
-}
-
 // Discard next unread byte in crate
 func (c *Crate) DiscardByte() {
 	c.DiscardN(1)
@@ -443,6 +409,7 @@ func (c *Crate) DiscardByte() {
 
 // Return byte slice the next unread byte occupies
 func (c *Crate) SliceByte() (slice []byte) {
+	c.CheckRead(1)
 	return c.data[c.read : c.read+1 : c.read+1]
 }
 
@@ -473,18 +440,6 @@ func (c *Crate) AccessByte(val *uint8, mode AccessMode) {
 	INT8
 ***************/
 
-type isI8 interface{ ~int8 }
-
-// Read int8 from data into dst
-func ReadI8[T isI8](data []byte, dst *T) {
-	*(*uint8)(unsafe.Pointer(dst)) = data[0]
-}
-
-// Write int8 from src into data
-func WriteI8[T isI8](data []byte, src T) {
-	data[0] = *(*uint8)(unsafe.Pointer(&src))
-}
-
 // Discard next unread byte in crate
 func (c *Crate) DiscardI8() {
 	c.DiscardN(1)
@@ -492,20 +447,20 @@ func (c *Crate) DiscardI8() {
 
 // Return byte slice the next unread int8 occupies
 func (c *Crate) SliceI8() (slice []byte) {
+	c.CheckRead(1)
 	return c.data[c.read : c.read+1 : c.read+1]
 }
 
 // Write int8 to crate
 func (c *Crate) WriteI8(val int8) {
 	c.CheckWrite(1)
-	WriteI8(c.data[c.write:], val)
+	c.data[c.write] = *(*uint8)(unsafe.Pointer(&val))
 	c.write += 1
 }
 
 // Read next byte from crate as int8
 func (c *Crate) ReadI8() (val int8) {
-	c.CheckRead(1)
-	ReadI8(c.data[c.read:], &val)
+	val = c.PeekI8()
 	c.read += 1
 	return val
 }
@@ -513,7 +468,7 @@ func (c *Crate) ReadI8() (val int8) {
 // Read next byte from crate as int8 without advancing read index
 func (c *Crate) PeekI8() (val int8) {
 	c.CheckRead(1)
-	ReadI8(c.data[c.read:], &val)
+	val = *(*int8)(unsafe.Pointer(&c.data[c.read]))
 	return val
 }
 
@@ -543,24 +498,6 @@ func (c *Crate) AccessI8(val *int8, mode AccessMode) (sliceModeData []byte) {
 	UINT16
 ***************/
 
-type isU16 interface{ ~uint16 }
-
-// Read uint16 from data into dst
-func ReadU16[T isU16](data []byte, dst *T) {
-	_ = data[1]
-	*(*uint16)(unsafe.Pointer(dst)) = ( //
-	/**/ uint16(data[0]) |
-		uint16(data[1])<<8)
-}
-
-// Write uint16 from src into data
-func WriteU16[T isU16](data []byte, src T) {
-	val := *(*uint16)(unsafe.Pointer(&src))
-	_ = data[1]
-	data[0] = byte(val)
-	data[1] = byte(val >> 8)
-}
-
 // Discard next 2 unread bytes in crate
 func (c *Crate) DiscardU16() {
 	c.DiscardN(2)
@@ -568,20 +505,21 @@ func (c *Crate) DiscardU16() {
 
 // Return byte slice the next unread uint16 occupies
 func (c *Crate) SliceU16() (slice []byte) {
+	c.CheckRead(2)
 	return c.data[c.read : c.read+2 : c.read+2]
 }
 
 // Write uint16 to crate
 func (c *Crate) WriteU16(val uint16) {
 	c.CheckWrite(2)
-	WriteU16(c.data[c.write:], val)
+	c.data[c.write+0] = byte(val)
+	c.data[c.write+1] = byte(val >> 8)
 	c.write += 2
 }
 
 // Read next 2 bytes from crate as uint16
 func (c *Crate) ReadU16() (val uint16) {
-	c.CheckRead(2)
-	ReadU16(c.data[c.read:], &val)
+	val = c.PeekU16()
 	c.read += 2
 	return val
 }
@@ -589,7 +527,9 @@ func (c *Crate) ReadU16() (val uint16) {
 // Read next 2 bytes from crate as uint16 without advancing read index
 func (c *Crate) PeekU16() (val uint16) {
 	c.CheckRead(2)
-	ReadU16(c.data[c.read:], &val)
+	val = ( //
+	/**/ uint16(c.data[c.read+0]) |
+		uint16(c.data[c.read+1])<<8)
 	return val
 }
 
@@ -619,24 +559,6 @@ func (c *Crate) AccessU16(val *uint16, mode AccessMode) (sliceModeData []byte) {
 	INT16
 ***************/
 
-type isI16 interface{ ~int16 }
-
-// Read int16 from data into dst
-func ReadI16[T isI16](data []byte, dst *T) {
-	_ = data[1]
-	*(*uint16)(unsafe.Pointer(dst)) = ( //
-	/**/ uint16(data[0]) |
-		uint16(data[1])<<8)
-}
-
-// Write int16 from src into data
-func WriteI16[T isI16](data []byte, src T) {
-	val := *(*uint16)(unsafe.Pointer(&src))
-	_ = data[1]
-	data[0] = byte(val)
-	data[1] = byte(val >> 8)
-}
-
 // Discard next 2 unread bytes in crate
 func (c *Crate) DiscardI16() {
 	c.DiscardN(2)
@@ -644,29 +566,26 @@ func (c *Crate) DiscardI16() {
 
 // Return byte slice the next unread int16 occupies
 func (c *Crate) SliceI16() (slice []byte) {
+	c.CheckRead(2)
 	return c.data[c.read : c.read+2 : c.read+2]
 }
 
 // Write int16 to crate
 func (c *Crate) WriteI16(val int16) {
-	c.CheckWrite(2)
-	WriteI16(c.data[c.write:], val)
-	c.write += 2
+	c.WriteU16(*(*uint16)(unsafe.Pointer(&val)))
 }
 
 // Read next 2 bytes from crate as int16
 func (c *Crate) ReadI16() (val int16) {
-	c.CheckRead(2)
-	ReadI16(c.data[c.read:], &val)
+	val = c.PeekI16()
 	c.read += 2
 	return val
 }
 
 // Read next 2 bytes from crate as int16 without advancing read index
 func (c *Crate) PeekI16() (val int16) {
-	c.CheckRead(2)
-	ReadI16(c.data[c.read:], &val)
-	return val
+	uVal := c.PeekU16()
+	return *(*int16)(unsafe.Pointer(&uVal))
 }
 
 // Use the int16 pointed to by val according to mode:
@@ -695,28 +614,6 @@ func (c *Crate) AccessI16(val *int16, mode AccessMode) (sliceModeData []byte) {
 	UINT24
 ***************/
 
-type isU32 interface{ ~uint32 }
-
-// Read 3 bytes from data into dst as a uint32
-// where the value is known to always be VALUE <= 16777215
-func ReadU24[T isU32](data []byte, dst *T) {
-	_ = data[2]
-	*(*uint32)(unsafe.Pointer(dst)) = ( //
-	/**/ uint32(data[0]) |
-		uint32(data[1])<<8 |
-		uint32(data[2])<<16)
-}
-
-// Write uint32 from src into data as 3 bytes,
-// where the value is known to always be VALUE <= 16777215
-func WriteU24[T isU32](data []byte, src T) {
-	val := *(*uint32)(unsafe.Pointer(&src))
-	_ = data[2]
-	data[0] = byte(val)
-	data[1] = byte(val >> 8)
-	data[2] = byte(val >> 16)
-}
-
 // Discard next 3 unread bytes in crate
 func (c *Crate) DiscardU24() {
 	c.DiscardN(3)
@@ -724,6 +621,7 @@ func (c *Crate) DiscardU24() {
 
 // Return byte slice the next unread uint32 with VALUE <= 16777215 occupies
 func (c *Crate) SliceU24() (slice []byte) {
+	c.CheckRead(3)
 	return c.data[c.read : c.read+3 : c.read+3]
 }
 
@@ -731,15 +629,16 @@ func (c *Crate) SliceU24() (slice []byte) {
 // where the value is known to always be VALUE <= 16777215
 func (c *Crate) WriteU24(val uint32) {
 	c.CheckWrite(3)
-	WriteU24(c.data[c.write:], val)
+	c.data[c.write+0] = byte(val)
+	c.data[c.write+1] = byte(val >> 8)
+	c.data[c.write+2] = byte(val >> 16)
 	c.write += 3
 }
 
 // Read next 3 bytes from crate as uint32,
 // where the value is known to always be VALUE <= 16777215
 func (c *Crate) ReadU24() (val uint32) {
-	c.CheckRead(3)
-	ReadU24(c.data[c.read:], &val)
+	val = c.PeekU24()
 	c.read += 3
 	return val
 }
@@ -748,7 +647,10 @@ func (c *Crate) ReadU24() (val uint32) {
 // where the value is known to always be VALUE <= 16777215
 func (c *Crate) PeekU24() (val uint32) {
 	c.CheckRead(3)
-	ReadU24(c.data[c.read:], &val)
+	val = ( //
+	/**/ uint32(c.data[c.read+0]) |
+		uint32(c.data[c.read+1])<<8 |
+		uint32(c.data[c.read+2])<<16)
 	return val
 }
 
@@ -778,40 +680,6 @@ func (c *Crate) AccessU24(val *uint32, mode AccessMode) (sliceModeData []byte) {
 	INT24
 ***************/
 
-type isI32 interface{ ~int32 }
-
-// Read 3 bytes from data into dst as an int32
-// where the value is known to always be -8388608 <= VALUE <= 8388607
-func ReadI24[T isI32](data []byte, dst *T) {
-	_ = data[2]
-	val := ( //
-	/**/ uint32(data[0]) |
-		uint32(data[1])<<8 |
-		uint32(data[2])<<16)
-	if val&minI24p > 0 {
-		if val^minI24p == 0 {
-			*(*uint32)(unsafe.Pointer(dst)) = minI24u
-			return
-		}
-		val = (((val ^ maxU24) + 1) ^ maxU32) + 1
-	}
-	*(*uint32)(unsafe.Pointer(dst)) = val
-}
-
-// Write int32 from src into data as 3 bytes,
-// where the value is known to always be -8388608 <= VALUE <= 8388607
-func WriteI24[T isI32](data []byte, src T) {
-	val := *(*uint32)(unsafe.Pointer(&src))
-	if val < 0 {
-		val = (((val ^ maxU32) + 1) ^ maxU24) + 1
-	}
-	_ = data[2]
-	data[0] = byte(val)
-	data[1] = byte(val >> 8)
-	data[2] = byte(val >> 16)
-
-}
-
 // Discard next 3 unread bytes in crate
 func (c *Crate) DiscardI24() {
 	c.DiscardN(3)
@@ -819,22 +687,21 @@ func (c *Crate) DiscardI24() {
 
 // Return byte slice the next unread int32 with -8388608 <= VALUE <= 8388607 occupies
 func (c *Crate) SliceI24() (slice []byte) {
+	c.CheckRead(3)
 	return c.data[c.read : c.read+3 : c.read+3]
 }
 
 // Write int32 to crate as 3 bytes,
 // where the value is known to always be -8388608 <= VALUE <= 8388607
 func (c *Crate) WriteI24(val int32) {
-	c.CheckWrite(3)
-	WriteI24(c.data[c.write:], val)
-	c.write += 3
+	val = twosComplimentShrink(val, maskI32, maskI24)
+	c.WriteU24(*(*uint32)(unsafe.Pointer(&val)))
 }
 
 // Read next 3 bytes from crate as int32,
 // where the value is known to always be -8388608 <= VALUE <= 8388607
 func (c *Crate) ReadI24() (val int32) {
-	c.CheckRead(3)
-	ReadI24(c.data[c.read:], &val)
+	val = c.PeekI24()
 	c.read += 3
 	return val
 }
@@ -842,8 +709,9 @@ func (c *Crate) ReadI24() (val int32) {
 // Read next 3 bytes from crate as int32 without advancing read index,
 // where the value is known to always be -8388608 <= VALUE <= 8388607
 func (c *Crate) PeekI24() (val int32) {
-	c.CheckRead(3)
-	ReadI24(c.data[c.read:], &val)
+	uVal := c.PeekU24()
+	val = *(*int32)(unsafe.Pointer(&uVal))
+	val = twosComplimentExpand(val, minI24, maskI24, maskI32)
 	return val
 }
 
@@ -873,26 +741,6 @@ func (c *Crate) AccessI24(val *int32, mode AccessMode) (sliceModeData []byte) {
 	UINT32
 ***************/
 
-// Read uint32 from data into dst
-func ReadU32[T isU32](data []byte, dst *T) {
-	_ = data[3]
-	*(*uint32)(unsafe.Pointer(dst)) = ( //
-	/**/ uint32(data[0]) |
-		uint32(data[1])<<8 |
-		uint32(data[2])<<16 |
-		uint32(data[3])<<24)
-}
-
-// Write uint32 from src into data
-func WriteU32[T isU32](data []byte, src T) {
-	val := *(*uint32)(unsafe.Pointer(&src))
-	_ = data[3]
-	data[0] = byte(val)
-	data[1] = byte(val >> 8)
-	data[2] = byte(val >> 16)
-	data[3] = byte(val >> 24)
-}
-
 // Discard next 4 unread bytes in crate
 func (c *Crate) DiscardU32() {
 	c.DiscardN(4)
@@ -900,20 +748,23 @@ func (c *Crate) DiscardU32() {
 
 // Return byte slice the next unread uint32 occupies
 func (c *Crate) SliceU32() (slice []byte) {
+	c.CheckRead(4)
 	return c.data[c.read : c.read+4 : c.read+4]
 }
 
 // Write uint32 to crate
 func (c *Crate) WriteU32(val uint32) {
 	c.CheckWrite(4)
-	WriteU32(c.data[c.write:], val)
+	c.data[c.write+0] = byte(val)
+	c.data[c.write+1] = byte(val >> 8)
+	c.data[c.write+2] = byte(val >> 16)
+	c.data[c.write+3] = byte(val >> 24)
 	c.write += 4
 }
 
 // Read next 4 bytes from crate as uint32
 func (c *Crate) ReadU32() (val uint32) {
-	c.CheckRead(4)
-	ReadU32(c.data[c.read:], &val)
+	val = c.PeekU32()
 	c.read += 4
 	return val
 }
@@ -921,7 +772,11 @@ func (c *Crate) ReadU32() (val uint32) {
 // Read next 4 bytes from crate as uint32 without advancing read index
 func (c *Crate) PeekU32() (val uint32) {
 	c.CheckRead(4)
-	ReadU32(c.data[c.read:], &val)
+	val = ( //
+	/**/ uint32(c.data[c.read+0]) |
+		uint32(c.data[c.read+1])<<8 |
+		uint32(c.data[c.read+2])<<16 |
+		uint32(c.data[c.read+3])<<24)
 	return val
 }
 
@@ -951,26 +806,6 @@ func (c *Crate) AccessU32(val *uint32, mode AccessMode) (sliceModeData []byte) {
 	INT32/RUNE
 ***************/
 
-// Read int32 from data into dst
-func ReadI32[T isI32](data []byte, dst *T) {
-	_ = data[3]
-	*(*uint32)(unsafe.Pointer(dst)) = ( //
-	/**/ uint32(data[0]) |
-		uint32(data[1])<<8 |
-		uint32(data[2])<<16 |
-		uint32(data[3])<<24)
-}
-
-// Write int32 from src into data
-func WriteI32[T isI32](data []byte, src T) {
-	val := *(*uint32)(unsafe.Pointer(&src))
-	_ = data[3]
-	data[0] = byte(val)
-	data[1] = byte(val >> 8)
-	data[2] = byte(val >> 16)
-	data[3] = byte(val >> 24)
-}
-
 // Discard next 4 unread bytes in crate
 func (c *Crate) DiscardI32() {
 	c.DiscardN(4)
@@ -978,28 +813,25 @@ func (c *Crate) DiscardI32() {
 
 // Return byte slice the next unread int32 occupies
 func (c *Crate) SliceI32() (slice []byte) {
+	c.CheckRead(4)
 	return c.data[c.read : c.read+4 : c.read+4]
 }
 
 // Write int32 to crate
 func (c *Crate) WriteI32(val int32) {
-	c.CheckWrite(4)
-	WriteI32(c.data[c.write:], val)
-	c.write += 4
+	c.WriteU32(*(*uint32)(unsafe.Pointer(&val)))
 }
 
 // Read next 4 bytes from crate as int32
-func (c *Crate) ReadI32() (val int32) {
-	c.CheckRead(4)
-	ReadI32(c.data[c.read:], &val)
-	c.read += 4
-	return val
+func (c *Crate) ReadI32() int32 {
+	uVal := c.ReadU32()
+	return *(*int32)(unsafe.Pointer(&uVal))
 }
 
 // Read next 4 bytes from crate as int32 without advancing read index
 func (c *Crate) PeekI32() (val int32) {
-	c.CheckRead(4)
-	ReadI32(c.data[c.read:], &val)
+	uVal := c.PeekU32()
+	val = *(*int32)(unsafe.Pointer(&uVal))
 	return val
 }
 
@@ -1025,19 +857,15 @@ func (c *Crate) AccessI32(val *int32, mode AccessMode) (sliceModeData []byte) {
 	return sliceModeData
 }
 
-// Read rune from data into dst
-func ReadRune[T isI32](data []byte, dst *T) {
-	ReadI32(data, dst)
-}
-
-// Write rune from src into data
-func WriteRune[T isI32](data []byte, src T) {
-	WriteI32(data, src)
-}
-
 // Discard next 4 unread bytes in crate
 func (c *Crate) DiscardRune() {
 	c.DiscardN(4)
+}
+
+// Return byte slice the next unread int32 occupies
+func (c *Crate) SliceRune() (slice []byte) {
+	c.CheckRead(4)
+	return c.data[c.read : c.read+4 : c.read+4]
 }
 
 // Write rune to crate
@@ -1067,32 +895,6 @@ func (c *Crate) AccessRune(val *rune, mode AccessMode) {
 	UINT40
 ***************/
 
-type isU64 interface{ ~uint64 }
-
-// Read 5 bytes from data into dst as a uint64
-// where the value is known to always be VALUE <= 1099511627775
-func ReadU40[T isU64](data []byte, dst *T) {
-	_ = data[4]
-	*(*uint64)(unsafe.Pointer(dst)) = ( //
-	/**/ uint64(data[0]) |
-		uint64(data[1])<<8 |
-		uint64(data[2])<<16 |
-		uint64(data[3])<<24 |
-		uint64(data[4])<<32)
-}
-
-// Write uint64 from src into data as 5 bytes,
-// where the value is known to always be VALUE <= 1099511627775
-func WriteU40[T isU64](data []byte, src T) {
-	val := *(*uint64)(unsafe.Pointer(&src))
-	_ = data[4]
-	data[0] = byte(val)
-	data[1] = byte(val >> 8)
-	data[2] = byte(val >> 16)
-	data[3] = byte(val >> 24)
-	data[4] = byte(val >> 32)
-}
-
 // Discard next 5 unread bytes in crate
 func (c *Crate) DiscardU40() {
 	c.DiscardN(5)
@@ -1100,6 +902,7 @@ func (c *Crate) DiscardU40() {
 
 // Return byte slice the next unread uint64 with VALUE <= 1099511627775 occupies
 func (c *Crate) SliceU40() (slice []byte) {
+	c.CheckRead(5)
 	return c.data[c.read : c.read+5 : c.read+5]
 }
 
@@ -1107,15 +910,18 @@ func (c *Crate) SliceU40() (slice []byte) {
 // where the value is known to always be VALUE <= 1099511627775
 func (c *Crate) WriteU40(val uint64) {
 	c.CheckWrite(5)
-	WriteU40(c.data[c.write:], val)
+	c.data[c.write+0] = byte(val)
+	c.data[c.write+1] = byte(val >> 8)
+	c.data[c.write+2] = byte(val >> 16)
+	c.data[c.write+3] = byte(val >> 24)
+	c.data[c.write+4] = byte(val >> 32)
 	c.write += 5
 }
 
 // Read next 5 bytes from crate as uint64,
 // where the value is known to always be VALUE <= 1099511627775
 func (c *Crate) ReadU40() (val uint64) {
-	c.CheckRead(5)
-	ReadU40(c.data[c.read:], &val)
+	val = c.PeekU40()
 	c.read += 5
 	return val
 }
@@ -1124,7 +930,12 @@ func (c *Crate) ReadU40() (val uint64) {
 // where the value is known to always be VALUE <= 1099511627775
 func (c *Crate) PeekU40() (val uint64) {
 	c.CheckRead(5)
-	ReadU40(c.data[c.read:], &val)
+	val = ( //
+	/**/ uint64(c.data[c.read+0]) |
+		uint64(c.data[c.read+1])<<8 |
+		uint64(c.data[c.read+2])<<16 |
+		uint64(c.data[c.read+3])<<24 |
+		uint64(c.data[c.read+4])<<32)
 	return val
 }
 
@@ -1154,43 +965,6 @@ func (c *Crate) AccessU40(val *uint64, mode AccessMode) (sliceModeData []byte) {
 	INT40
 ***************/
 
-type isI64 interface{ ~int64 }
-
-// Read 5 bytes from data into dst as an int64
-// where the value is known to always be -549755813888 <= VALUE <= 549755813887
-func ReadI40[T isI64](data []byte, dst *T) {
-	_ = data[4]
-	val := ( //
-	/**/ uint64(data[0]) |
-		uint64(data[1])<<8 |
-		uint64(data[2])<<16 |
-		uint64(data[3])<<24 |
-		uint64(data[4])<<32)
-	if val&minI40p > 0 {
-		if val^minI40p == 0 {
-			*(*uint64)(unsafe.Pointer(dst)) = minI40u
-			return
-		}
-		val = (((val ^ maxU40) + 1) ^ maxU64) + 1
-	}
-	*(*uint64)(unsafe.Pointer(dst)) = val
-}
-
-// Write int64 from src into data as 5 bytes,
-// where the value is known to always be -549755813888 <= VALUE <= 549755813887
-func WriteI40[T isI64](data []byte, src T) {
-	val := *(*uint64)(unsafe.Pointer(&src))
-	if val < 0 {
-		val = (((val ^ maxU64) + 1) ^ maxU40) + 1
-	}
-	_ = data[4]
-	data[0] = byte(val)
-	data[1] = byte(val >> 8)
-	data[2] = byte(val >> 16)
-	data[3] = byte(val >> 24)
-	data[4] = byte(val >> 32)
-}
-
 // Discard next 5 unread bytes in crate
 func (c *Crate) DiscardI40() {
 	c.DiscardN(5)
@@ -1198,22 +972,21 @@ func (c *Crate) DiscardI40() {
 
 // Return byte slice the next unread int64 with -549755813888 <= VALUE <= 549755813887 occupies
 func (c *Crate) SliceI40() (slice []byte) {
+	c.CheckRead(5)
 	return c.data[c.read : c.read+5 : c.read+5]
 }
 
 // Write int64 to crate as 5 bytes,
 // where the value is known to always be -549755813888 <= VALUE <= 549755813887
 func (c *Crate) WriteI40(val int64) {
-	c.CheckWrite(5)
-	WriteI40(c.data[c.write:], val)
-	c.write += 5
+	val = twosComplimentShrink(val, maskI64, maskI40)
+	c.WriteU40(*(*uint64)(unsafe.Pointer(&val)))
 }
 
 // Read next 5 bytes from crate as int64,
 // where the value is known to always be -549755813888 <= VALUE <= 549755813887
 func (c *Crate) ReadI40() (val int64) {
-	c.CheckRead(5)
-	ReadI40(c.data[c.read:], &val)
+	val = c.PeekI40()
 	c.read += 5
 	return val
 }
@@ -1221,8 +994,9 @@ func (c *Crate) ReadI40() (val int64) {
 // Read next 5 bytes from crate as int64 without advancing read index,
 // where the value is known to always be -549755813888 <= VALUE <= 549755813887
 func (c *Crate) PeekI40() (val int64) {
-	c.CheckRead(5)
-	ReadI40(c.data[c.read:], &val)
+	uVal := c.PeekU40()
+	val = *(*int64)(unsafe.Pointer(&uVal))
+	val = twosComplimentExpand(val, minI40, maskI40, maskI64)
 	return val
 }
 
@@ -1252,32 +1026,6 @@ func (c *Crate) AccessI40(val *int64, mode AccessMode) (sliceModeData []byte) {
 	UINT48
 ***************/
 
-// Read 6 bytes from data into dst as a uint64
-// where the value is known to always be VALUE <= 281474976710655
-func ReadU48[T isU64](data []byte, dst *T) {
-	_ = data[5]
-	*(*uint64)(unsafe.Pointer(dst)) = ( //
-	/**/ uint64(data[0]) |
-		uint64(data[1])<<8 |
-		uint64(data[2])<<16 |
-		uint64(data[3])<<24 |
-		uint64(data[4])<<32 |
-		uint64(data[5])<<40)
-}
-
-// Write uint64 from src into data as 6 bytes,
-// where the value is known to always be VALUE <= 281474976710655
-func WriteU48[T isU64](data []byte, src T) {
-	val := *(*uint64)(unsafe.Pointer(&src))
-	_ = data[5]
-	data[0] = byte(val)
-	data[1] = byte(val >> 8)
-	data[2] = byte(val >> 16)
-	data[3] = byte(val >> 24)
-	data[4] = byte(val >> 32)
-	data[5] = byte(val >> 40)
-}
-
 // Discard next 6 unread bytes in crate
 func (c *Crate) DiscardU48() {
 	c.DiscardN(6)
@@ -1285,6 +1033,7 @@ func (c *Crate) DiscardU48() {
 
 // Return byte slice the next unread uint64 with VALUE <= 281474976710655 occupies
 func (c *Crate) SliceU48() (slice []byte) {
+	c.CheckRead(6)
 	return c.data[c.read : c.read+6 : c.read+6]
 }
 
@@ -1292,15 +1041,19 @@ func (c *Crate) SliceU48() (slice []byte) {
 // where the value is known to always be VALUE <= 281474976710655
 func (c *Crate) WriteU48(val uint64) {
 	c.CheckWrite(6)
-	WriteU48(c.data[c.write:], val)
+	c.data[c.write+0] = byte(val)
+	c.data[c.write+1] = byte(val >> 8)
+	c.data[c.write+2] = byte(val >> 16)
+	c.data[c.write+3] = byte(val >> 24)
+	c.data[c.write+4] = byte(val >> 32)
+	c.data[c.write+5] = byte(val >> 40)
 	c.write += 6
 }
 
 // Read next 6 bytes from crate as uint64,
 // where the value is known to always be VALUE <= 281474976710655
 func (c *Crate) ReadU48() (val uint64) {
-	c.CheckRead(6)
-	ReadU48(c.data[c.read:], &val)
+	val = c.PeekU48()
 	c.read += 6
 	return val
 }
@@ -1309,7 +1062,13 @@ func (c *Crate) ReadU48() (val uint64) {
 // where the value is known to always be VALUE <= 281474976710655
 func (c *Crate) PeekU48() (val uint64) {
 	c.CheckRead(6)
-	ReadU48(c.data[c.read:], &val)
+	val = ( //
+	/**/ uint64(c.data[c.read+0]) |
+		uint64(c.data[c.read+1])<<8 |
+		uint64(c.data[c.read+2])<<16 |
+		uint64(c.data[c.read+3])<<24 |
+		uint64(c.data[c.read+4])<<32 |
+		uint64(c.data[c.read+5])<<40)
 	return val
 }
 
@@ -1339,43 +1098,6 @@ func (c *Crate) AccessU48(val *uint64, mode AccessMode) (sliceModeData []byte) {
 	INT48
 ***************/
 
-// Read 6 bytes from data into dst as an int64
-// where the value is known to always be -140737488355328 <= VALUE <= 140737488355327
-func ReadI48[T isI64](data []byte, dst *T) {
-	_ = data[5]
-	val := ( //
-	/**/ uint64(data[0]) |
-		uint64(data[1])<<8 |
-		uint64(data[2])<<16 |
-		uint64(data[3])<<24 |
-		uint64(data[4])<<32 |
-		uint64(data[5])<<40)
-	if val&minI48p > 0 {
-		if val^minI48p == 0 {
-			*(*uint64)(unsafe.Pointer(dst)) = minI48u
-			return
-		}
-		val = (((val ^ maxU48) + 1) ^ maxU64) + 1
-	}
-	*(*uint64)(unsafe.Pointer(dst)) = val
-}
-
-// Write int64 from src into data as 6 bytes,
-// where the value is known to always be -140737488355328 <= VALUE <= 140737488355327
-func WriteI48[T isI64](data []byte, src T) {
-	val := *(*uint64)(unsafe.Pointer(&src))
-	if val < 0 {
-		val = (((val ^ maxU64) + 1) ^ maxU48) + 1
-	}
-	_ = data[5]
-	data[0] = byte(val)
-	data[1] = byte(val >> 8)
-	data[2] = byte(val >> 16)
-	data[3] = byte(val >> 24)
-	data[4] = byte(val >> 32)
-	data[5] = byte(val >> 40)
-}
-
 // Discard next 6 unread bytes in crate
 func (c *Crate) DiscardI48() {
 	c.DiscardN(6)
@@ -1383,22 +1105,21 @@ func (c *Crate) DiscardI48() {
 
 // Return byte slice the next unread int64 with -140737488355328 <= VALUE <= 140737488355327 occupies
 func (c *Crate) SliceI48() (slice []byte) {
+	c.CheckRead(6)
 	return c.data[c.read : c.read+6 : c.read+6]
 }
 
 // Write int64 to crate as 6 bytes,
 // where the value is known to always be -140737488355328 <= VALUE <= 140737488355327
 func (c *Crate) WriteI48(val int64) {
-	c.CheckWrite(6)
-	WriteI48(c.data[c.write:], val)
-	c.write += 6
+	val = twosComplimentShrink(val, maskI64, maskI48)
+	c.WriteU48(*(*uint64)(unsafe.Pointer(&val)))
 }
 
 // Read next 6 bytes from crate as int64,
 // where the value is known to always be -140737488355328 <= VALUE <= 140737488355327
 func (c *Crate) ReadI48() (val int64) {
-	c.CheckRead(6)
-	ReadI48(c.data[c.read:], &val)
+	val = c.PeekI48()
 	c.read += 6
 	return val
 }
@@ -1406,8 +1127,9 @@ func (c *Crate) ReadI48() (val int64) {
 // Read next 6 bytes from crate as int64 without advancing read index,
 // where the value is known to always be -140737488355328 <= VALUE <= 140737488355327
 func (c *Crate) PeekI48() (val int64) {
-	c.CheckRead(6)
-	ReadI48(c.data[c.read:], &val)
+	uVal := c.PeekU48()
+	val = *(*int64)(unsafe.Pointer(&uVal))
+	val = twosComplimentExpand(val, minI48, maskI48, maskI64)
 	return val
 }
 
@@ -1437,34 +1159,6 @@ func (c *Crate) AccessI48(val *int64, mode AccessMode) (sliceModeData []byte) {
 	UINT56
 ***************/
 
-// Read 7 bytes from data into dst as a uint64
-// where the value is known to always be VALUE <= 72057594037927935
-func ReadU56[T isU64](data []byte, dst *T) {
-	_ = data[6]
-	*(*uint64)(unsafe.Pointer(dst)) = ( //
-	/**/ uint64(data[0]) |
-		uint64(data[1])<<8 |
-		uint64(data[2])<<16 |
-		uint64(data[3])<<24 |
-		uint64(data[4])<<32 |
-		uint64(data[5])<<40 |
-		uint64(data[6])<<48)
-}
-
-// Write uint64 from src into data as 7 bytes,
-// where the value is known to always be VALUE <= 72057594037927935
-func WriteU56[T isU64](data []byte, src T) {
-	val := *(*uint64)(unsafe.Pointer(&src))
-	_ = data[6]
-	data[0] = byte(val)
-	data[1] = byte(val >> 8)
-	data[2] = byte(val >> 16)
-	data[3] = byte(val >> 24)
-	data[4] = byte(val >> 32)
-	data[5] = byte(val >> 40)
-	data[6] = byte(val >> 48)
-}
-
 // Discard next 7 unread bytes in crate
 func (c *Crate) DiscardU56() {
 	c.DiscardN(7)
@@ -1472,6 +1166,7 @@ func (c *Crate) DiscardU56() {
 
 // Return byte slice the next unread uint64 with VALUE <= 72057594037927935 occupies
 func (c *Crate) SliceU56() (slice []byte) {
+	c.CheckRead(7)
 	return c.data[c.read : c.read+7 : c.read+7]
 }
 
@@ -1479,15 +1174,20 @@ func (c *Crate) SliceU56() (slice []byte) {
 // where the value is known to always be VALUE <= 72057594037927935
 func (c *Crate) WriteU56(val uint64) {
 	c.CheckWrite(7)
-	WriteU56(c.data[c.write:], val)
+	c.data[c.write+0] = byte(val)
+	c.data[c.write+1] = byte(val >> 8)
+	c.data[c.write+2] = byte(val >> 16)
+	c.data[c.write+3] = byte(val >> 24)
+	c.data[c.write+4] = byte(val >> 32)
+	c.data[c.write+5] = byte(val >> 40)
+	c.data[c.write+6] = byte(val >> 48)
 	c.write += 7
 }
 
 // Read next 7 bytes from crate as uint64,
 // where the value is known to always be VALUE <= 72057594037927935
 func (c *Crate) ReadU56() (val uint64) {
-	c.CheckRead(7)
-	ReadU56(c.data[c.read:], &val)
+	val = c.PeekU56()
 	c.read += 7
 	return val
 }
@@ -1496,7 +1196,14 @@ func (c *Crate) ReadU56() (val uint64) {
 // where the value is known to always be VALUE <= 72057594037927935
 func (c *Crate) PeekU56() (val uint64) {
 	c.CheckRead(7)
-	ReadU56(c.data[c.read:], &val)
+	val = ( //
+	/**/ uint64(c.data[c.read+0]) |
+		uint64(c.data[c.read+1])<<8 |
+		uint64(c.data[c.read+2])<<16 |
+		uint64(c.data[c.read+3])<<24 |
+		uint64(c.data[c.read+4])<<32 |
+		uint64(c.data[c.read+5])<<40 |
+		uint64(c.data[c.read+6])<<48)
 	return val
 }
 
@@ -1526,45 +1233,6 @@ func (c *Crate) AccessU56(val *uint64, mode AccessMode) (sliceModeData []byte) {
 	INT56
 ***************/
 
-// Read 7 bytes from data into dst as an int64
-// where the value is known to always be -36028797018963968 <= VALUE <= 36028797018963967
-func ReadI56[T isI64](data []byte, dst *T) {
-	_ = data[6]
-	val := ( //
-	/**/ uint64(data[0]) |
-		uint64(data[1])<<8 |
-		uint64(data[2])<<16 |
-		uint64(data[3])<<24 |
-		uint64(data[4])<<32 |
-		uint64(data[5])<<40 |
-		uint64(data[6])<<48)
-	if val&minI56p > 0 {
-		if val^minI56p == 0 {
-			*(*uint64)(unsafe.Pointer(dst)) = minI56u
-			return
-		}
-		val = (((val ^ maxU56) + 1) ^ maxU64) + 1
-	}
-	*(*uint64)(unsafe.Pointer(dst)) = val
-}
-
-// Write int64 from src into data as 7 bytes,
-// where the value is known to always be -36028797018963968 <= VALUE <= 36028797018963967
-func WriteI56[T isI64](data []byte, src T) {
-	val := *(*uint64)(unsafe.Pointer(&src))
-	if val < 0 {
-		val = (((val ^ maxU64) + 1) ^ maxU56) + 1
-	}
-	_ = data[6]
-	data[0] = byte(val)
-	data[1] = byte(val >> 8)
-	data[2] = byte(val >> 16)
-	data[3] = byte(val >> 24)
-	data[4] = byte(val >> 32)
-	data[5] = byte(val >> 40)
-	data[6] = byte(val >> 48)
-}
-
 // Discard next 7 unread bytes in crate
 func (c *Crate) DiscardI56() {
 	c.DiscardN(7)
@@ -1572,22 +1240,21 @@ func (c *Crate) DiscardI56() {
 
 // Return byte slice the next unread int64 with -36028797018963968 <= VALUE <= 36028797018963967 occupies
 func (c *Crate) SliceI56() (slice []byte) {
+	c.CheckRead(7)
 	return c.data[c.read : c.read+7 : c.read+7]
 }
 
 // Write int64 to crate as 7 bytes,
 // where the value is known to always be -36028797018963968 <= VALUE <= 36028797018963967
 func (c *Crate) WriteI56(val int64) {
-	c.CheckWrite(7)
-	WriteI56(c.data[c.write:], val)
-	c.write += 7
+	val = twosComplimentShrink(val, maskI64, maskI56)
+	c.WriteU56(*(*uint64)(unsafe.Pointer(&val)))
 }
 
 // Read next 7 bytes from crate as int64,
 // where the value is known to always be -36028797018963968 <= VALUE <= 36028797018963967
 func (c *Crate) ReadI56() (val int64) {
-	c.CheckRead(7)
-	ReadI56(c.data[c.read:], &val)
+	val = c.PeekI56()
 	c.read += 7
 	return val
 }
@@ -1595,8 +1262,9 @@ func (c *Crate) ReadI56() (val int64) {
 // Read next 7 bytes from crate as int64 without advancing read index,
 // where the value is known to always be -36028797018963968 <= VALUE <= 36028797018963967
 func (c *Crate) PeekI56() (val int64) {
-	c.CheckRead(7)
-	ReadI56(c.data[c.read:], &val)
+	uVal := c.PeekU56()
+	val = *(*int64)(unsafe.Pointer(&uVal))
+	val = twosComplimentExpand(val, minI56, maskI56, maskI64)
 	return val
 }
 
@@ -1626,34 +1294,6 @@ func (c *Crate) AccessI56(val *int64, mode AccessMode) (sliceModeData []byte) {
 	UINT64
 ***************/
 
-// Read uint64 from data into dst
-func ReadU64[T isU64](data []byte, dst *T) {
-	_ = data[7]
-	*(*uint64)(unsafe.Pointer(dst)) = ( //
-	/**/ uint64(data[0]) |
-		uint64(data[1])<<8 |
-		uint64(data[2])<<16 |
-		uint64(data[3])<<24 |
-		uint64(data[4])<<32 |
-		uint64(data[5])<<40 |
-		uint64(data[6])<<48 |
-		uint64(data[7])<<56)
-}
-
-// Write uint64 from src into data
-func WriteU64[T isU64](data []byte, src T) {
-	val := *(*uint64)(unsafe.Pointer(&src))
-	_ = data[7]
-	data[0] = byte(val)
-	data[1] = byte(val >> 8)
-	data[2] = byte(val >> 16)
-	data[3] = byte(val >> 24)
-	data[4] = byte(val >> 32)
-	data[5] = byte(val >> 40)
-	data[6] = byte(val >> 48)
-	data[7] = byte(val >> 56)
-}
-
 // Discard next 8 unread bytes in crate
 func (c *Crate) DiscardU64() {
 	c.DiscardN(8)
@@ -1661,20 +1301,27 @@ func (c *Crate) DiscardU64() {
 
 // Return byte slice the next unread uint64 occupies
 func (c *Crate) SliceU64() (slice []byte) {
+	c.CheckRead(8)
 	return c.data[c.read : c.read+8 : c.read+8]
 }
 
 // Write uint64 to crate
 func (c *Crate) WriteU64(val uint64) {
 	c.CheckWrite(8)
-	WriteU64(c.data[c.write:], val)
+	c.data[c.write+0] = byte(val)
+	c.data[c.write+1] = byte(val >> 8)
+	c.data[c.write+2] = byte(val >> 16)
+	c.data[c.write+3] = byte(val >> 24)
+	c.data[c.write+4] = byte(val >> 32)
+	c.data[c.write+5] = byte(val >> 40)
+	c.data[c.write+6] = byte(val >> 48)
+	c.data[c.write+7] = byte(val >> 56)
 	c.write += 8
 }
 
 // Read next 8 bytes from crate as uint64
 func (c *Crate) ReadU64() (val uint64) {
-	c.CheckRead(8)
-	ReadU64(c.data[c.read:], &val)
+	val = c.PeekU64()
 	c.read += 8
 	return val
 }
@@ -1682,7 +1329,15 @@ func (c *Crate) ReadU64() (val uint64) {
 // Read next 8 bytes from crate as uint64 without advancing read index
 func (c *Crate) PeekU64() (val uint64) {
 	c.CheckRead(8)
-	ReadU64(c.data[c.read:], &val)
+	val = ( //
+	/**/ uint64(c.data[c.read+0]) |
+		uint64(c.data[c.read+1])<<8 |
+		uint64(c.data[c.read+2])<<16 |
+		uint64(c.data[c.read+3])<<24 |
+		uint64(c.data[c.read+4])<<32 |
+		uint64(c.data[c.read+5])<<40 |
+		uint64(c.data[c.read+6])<<48 |
+		uint64(c.data[c.read+7])<<56)
 	return val
 }
 
@@ -1712,34 +1367,6 @@ func (c *Crate) AccessU64(val *uint64, mode AccessMode) (sliceModeData []byte) {
 	INT64
 ***************/
 
-// Read int64 from data into dst
-func ReadI64[T isI64](data []byte, dst *T) {
-	_ = data[7]
-	*(*uint64)(unsafe.Pointer(dst)) = ( //
-	/**/ uint64(data[0]) |
-		uint64(data[1])<<8 |
-		uint64(data[2])<<16 |
-		uint64(data[3])<<24 |
-		uint64(data[4])<<32 |
-		uint64(data[5])<<40 |
-		uint64(data[6])<<48 |
-		uint64(data[7])<<56)
-}
-
-// Write int64 from src into data
-func WriteI64[T isI64](data []byte, src T) {
-	val := *(*uint64)(unsafe.Pointer(&src))
-	_ = data[7]
-	data[0] = byte(val)
-	data[1] = byte(val >> 8)
-	data[2] = byte(val >> 16)
-	data[3] = byte(val >> 24)
-	data[4] = byte(val >> 32)
-	data[5] = byte(val >> 40)
-	data[6] = byte(val >> 48)
-	data[7] = byte(val >> 56)
-}
-
 // Discard next 8 unread bytes in crate
 func (c *Crate) DiscardI64() {
 	c.DiscardN(8)
@@ -1747,28 +1374,26 @@ func (c *Crate) DiscardI64() {
 
 // Return byte slice the next unread int64 occupies
 func (c *Crate) SliceI64() (slice []byte) {
+	c.CheckRead(8)
 	return c.data[c.read : c.read+8 : c.read+8]
 }
 
 // Write int64 to crate
 func (c *Crate) WriteI64(val int64) {
-	c.CheckWrite(8)
-	WriteI64(c.data[c.write:], val)
-	c.write += 8
+	c.WriteU64(*(*uint64)(unsafe.Pointer(&val)))
 }
 
 // Read next 8 bytes from crate as int64
 func (c *Crate) ReadI64() (val int64) {
-	c.CheckRead(8)
-	ReadI64(c.data[c.read:], &val)
-	c.read += 8
+	uVal := c.ReadU64()
+	val = *(*int64)(unsafe.Pointer(&uVal))
 	return val
 }
 
 // Read next 8 bytes from crate as int64 without advancing read index
 func (c *Crate) PeekI64() (val int64) {
-	c.CheckRead(8)
-	ReadI64(c.data[c.read:], &val)
+	uVal := c.PeekU64()
+	val = *(*int64)(unsafe.Pointer(&uVal))
 	return val
 }
 
@@ -1798,38 +1423,6 @@ func (c *Crate) AccessI64(val *int64, mode AccessMode) (sliceModeData []byte) {
 	INT
 ***************/
 
-type isInt interface{ ~int }
-
-// Read int from data into dst
-func ReadInt[T isInt](data []byte, dst *T) {
-	_ = data[7]
-	val := ( //
-	/**/ uint64(data[0]) |
-		uint64(data[1])<<8 |
-		uint64(data[2])<<16 |
-		uint64(data[3])<<24 |
-		uint64(data[4])<<32 |
-		uint64(data[5])<<40 |
-		uint64(data[6])<<48 |
-		uint64(data[7])<<56)
-	*(*int)(unsafe.Pointer(dst)) = int(val)
-}
-
-// Write int from src into data
-func WriteInt[T isInt](data []byte, src T) {
-	valInt := int64(*(*int)(unsafe.Pointer(&src)))
-	val := *(*uint64)(unsafe.Pointer(&valInt))
-	_ = data[7]
-	data[0] = byte(val)
-	data[1] = byte(val >> 8)
-	data[2] = byte(val >> 16)
-	data[3] = byte(val >> 24)
-	data[4] = byte(val >> 32)
-	data[5] = byte(val >> 40)
-	data[6] = byte(val >> 48)
-	data[7] = byte(val >> 56)
-}
-
 // Discard next 8 unread bytes in crate
 func (c *Crate) DiscardInt() {
 	c.DiscardN(8)
@@ -1837,28 +1430,24 @@ func (c *Crate) DiscardInt() {
 
 // Return byte slice the next unread int occupies
 func (c *Crate) SliceInt() (slice []byte) {
+	c.CheckRead(8)
 	return c.data[c.read : c.read+8 : c.read+8]
 }
 
 // Write int to crate
 func (c *Crate) WriteInt(val int) {
-	c.CheckWrite(8)
-	WriteInt(c.data[c.write:], val)
-	c.write += 8
+	c.WriteI64(int64(val))
 }
 
 // Read next 8 bytes from crate as int
 func (c *Crate) ReadInt() (val int) {
-	c.CheckRead(8)
-	ReadInt(c.data[c.read:], &val)
-	c.read += 8
+	val = int(c.ReadI64())
 	return val
 }
 
 // Read next 8 bytes from crate as int without advancing read index
 func (c *Crate) PeekInt() (val int) {
-	c.CheckRead(8)
-	ReadInt(c.data[c.read:], &val)
+	val = int(c.PeekI64())
 	return val
 }
 
@@ -1888,37 +1477,6 @@ func (c *Crate) AccessInt(val *int, mode AccessMode) (sliceModeData []byte) {
 	UINT
 ***************/
 
-type isUint interface{ ~uint }
-
-// Read uint from data into dst
-func ReadUint[T isUint](data []byte, dst *T) {
-	_ = data[7]
-	val := ( //
-	/**/ uint64(data[0]) |
-		uint64(data[1])<<8 |
-		uint64(data[2])<<16 |
-		uint64(data[3])<<24 |
-		uint64(data[4])<<32 |
-		uint64(data[5])<<40 |
-		uint64(data[6])<<48 |
-		uint64(data[7])<<56)
-	*(*uint)(unsafe.Pointer(dst)) = uint(val)
-}
-
-// Write uint from src into data
-func WriteUint[T isUint](data []byte, src T) {
-	val := uint64(*(*uint)(unsafe.Pointer(&src)))
-	_ = data[7]
-	data[0] = byte(val)
-	data[1] = byte(val >> 8)
-	data[2] = byte(val >> 16)
-	data[3] = byte(val >> 24)
-	data[4] = byte(val >> 32)
-	data[5] = byte(val >> 40)
-	data[6] = byte(val >> 48)
-	data[7] = byte(val >> 56)
-}
-
 // Discard next 8 unread bytes in crate
 func (c *Crate) DiscardUint() {
 	c.DiscardN(8)
@@ -1926,28 +1484,24 @@ func (c *Crate) DiscardUint() {
 
 // Return byte slice the next unread uint occupies
 func (c *Crate) SliceUint() (slice []byte) {
+	c.CheckRead(8)
 	return c.data[c.read : c.read+8 : c.read+8]
 }
 
 // Write uint to crate
 func (c *Crate) WriteUint(val uint) {
-	c.CheckWrite(8)
-	WriteUint(c.data[c.write:], val)
-	c.write += 8
+	c.WriteU64(uint64(val))
 }
 
 // Read next 8 bytes from crate as uint
 func (c *Crate) ReadUint() (val uint) {
-	c.CheckRead(8)
-	ReadUint(c.data[c.read:], &val)
-	c.read += 8
+	val = uint(c.ReadU64())
 	return val
 }
 
 // Read next 8 bytes from crate as uint without advancing read index
 func (c *Crate) PeekUint() (val uint) {
-	c.CheckRead(8)
-	ReadUint(c.data[c.read:], &val)
+	val = uint(c.PeekU64())
 	return val
 }
 
@@ -1977,37 +1531,6 @@ func (c *Crate) AccessUint(val *uint, mode AccessMode) (sliceModeData []byte) {
 	UINTPTR
 ***************/
 
-type isUintPtr interface{ ~uintptr }
-
-// Read uint from data into dst
-func ReadUintPtr[T isUintPtr](data []byte, dst *T) {
-	_ = data[7]
-	val := ( //
-	/**/ uint64(data[0]) |
-		uint64(data[1])<<8 |
-		uint64(data[2])<<16 |
-		uint64(data[3])<<24 |
-		uint64(data[4])<<32 |
-		uint64(data[5])<<40 |
-		uint64(data[6])<<48 |
-		uint64(data[7])<<56)
-	*(*uintptr)(unsafe.Pointer(dst)) = uintptr(val)
-}
-
-// Write uintptr from src into data
-func WriteUintPtr[T isUintPtr](data []byte, src T) {
-	val := uint64(*(*uintptr)(unsafe.Pointer(&src)))
-	_ = data[7]
-	data[0] = byte(val)
-	data[1] = byte(val >> 8)
-	data[2] = byte(val >> 16)
-	data[3] = byte(val >> 24)
-	data[4] = byte(val >> 32)
-	data[5] = byte(val >> 40)
-	data[6] = byte(val >> 48)
-	data[7] = byte(val >> 56)
-}
-
 // Discard next 8 unread bytes in crate
 func (c *Crate) DiscardUintPtr() {
 	c.DiscardN(8)
@@ -2015,28 +1538,24 @@ func (c *Crate) DiscardUintPtr() {
 
 // Return byte slice the next unread uintptr occupies
 func (c *Crate) SliceUintPtr() (slice []byte) {
+	c.CheckRead(8)
 	return c.data[c.read : c.read+8 : c.read+8]
 }
 
 // Write uintptr to crate
 func (c *Crate) WriteUintPtr(val uintptr) {
-	c.CheckWrite(8)
-	WriteUintPtr(c.data[c.write:], val)
-	c.write += 8
+	c.WriteU64(uint64(val))
 }
 
 // Read next 8 bytes from crate as uintptr
 func (c *Crate) ReadUintPtr() (val uintptr) {
-	c.CheckRead(8)
-	ReadUintPtr(c.data[c.read:], &val)
-	c.read += 8
+	val = uintptr(c.ReadU64())
 	return val
 }
 
 // Read next 8 bytes from crate as uintptr without advancing read index
 func (c *Crate) PeekUintPtr() (val uintptr) {
-	c.CheckRead(8)
-	ReadUintPtr(c.data[c.read:], &val)
+	val = uintptr(c.PeekU64())
 	return val
 }
 
@@ -2066,28 +1585,6 @@ func (c *Crate) AccessUintPtr(val *uintptr, mode AccessMode) (sliceModeData []by
 	FLOAT32
 ***************/
 
-type isF32 interface{ ~float32 }
-
-// Read float32 from data into dst
-func ReadF32[T isF32](data []byte, dst *T) {
-	_ = data[3]
-	*(*uint32)(unsafe.Pointer(dst)) = ( //
-	/**/ uint32(data[0]) |
-		uint32(data[1])<<8 |
-		uint32(data[2])<<16 |
-		uint32(data[3])<<24)
-}
-
-// Write float32 from src into data
-func WriteF32[T isF32](data []byte, src T) {
-	val := *(*uint32)(unsafe.Pointer(&src))
-	_ = data[3]
-	data[0] = byte(val)
-	data[1] = byte(val >> 8)
-	data[2] = byte(val >> 16)
-	data[3] = byte(val >> 24)
-}
-
 // Discard next 4 unread bytes in crate
 func (c *Crate) DiscardF32() {
 	c.DiscardN(4)
@@ -2095,28 +1592,26 @@ func (c *Crate) DiscardF32() {
 
 // Return byte slice the next unread float32 occupies
 func (c *Crate) SliceF32() (slice []byte) {
+	c.CheckRead(4)
 	return c.data[c.read : c.read+4 : c.read+4]
 }
 
 // Write float32 to crate
 func (c *Crate) WriteF32(val float32) {
-	c.CheckWrite(4)
-	WriteF32(c.data[c.write:], val)
-	c.write += 4
+	c.WriteU32(*(*uint32)(unsafe.Pointer(&val)))
 }
 
 // Read next 4 bytes from crate as float32
 func (c *Crate) ReadF32() (val float32) {
-	c.CheckRead(4)
-	ReadF32(c.data[c.read:], &val)
-	c.read += 4
+	rVal := c.ReadU32()
+	val = *(*float32)(unsafe.Pointer(&rVal))
 	return val
 }
 
 // Read next 4 bytes from crate as float32 without advancing read index
 func (c *Crate) PeekF32() (val float32) {
-	c.CheckRead(4)
-	ReadF32(c.data[c.read:], &val)
+	rVal := c.PeekU32()
+	val = *(*float32)(unsafe.Pointer(&rVal))
 	return val
 }
 
@@ -2146,36 +1641,6 @@ func (c *Crate) AccessF32(val *float32, mode AccessMode) (sliceModeData []byte) 
 	FLOAT64
 ***************/
 
-type isF64 interface{ ~float64 }
-
-// Read float64 from data into dst
-func ReadF64[T isF64](data []byte, dst *T) {
-	_ = data[7]
-	*(*uint64)(unsafe.Pointer(dst)) = ( //
-	/**/ uint64(data[0]) |
-		uint64(data[1])<<8 |
-		uint64(data[2])<<16 |
-		uint64(data[3])<<24 |
-		uint64(data[4])<<32 |
-		uint64(data[5])<<40 |
-		uint64(data[6])<<48 |
-		uint64(data[7])<<56)
-}
-
-// Write float64 from src into data
-func WriteF64[T isF64](data []byte, src T) {
-	val := *(*uint64)(unsafe.Pointer(&src))
-	_ = data[7]
-	data[0] = byte(val)
-	data[1] = byte(val >> 8)
-	data[2] = byte(val >> 16)
-	data[3] = byte(val >> 24)
-	data[4] = byte(val >> 32)
-	data[5] = byte(val >> 40)
-	data[6] = byte(val >> 48)
-	data[7] = byte(val >> 56)
-}
-
 // Discard next 8 unread bytes in crate
 func (c *Crate) DiscardF64() {
 	c.DiscardN(8)
@@ -2183,28 +1648,26 @@ func (c *Crate) DiscardF64() {
 
 // Return byte slice the next unread float64 occupies
 func (c *Crate) SliceF64() (slice []byte) {
+	c.CheckRead(8)
 	return c.data[c.read : c.read+8 : c.read+8]
 }
 
 // Write float64 to crate
 func (c *Crate) WriteF64(val float64) {
-	c.CheckWrite(8)
-	WriteF64(c.data[c.write:], val)
-	c.write += 8
+	c.WriteU64(*(*uint64)(unsafe.Pointer(&val)))
 }
 
 // Read next 8 bytes from crate as float64
 func (c *Crate) ReadF64() (val float64) {
-	c.CheckRead(8)
-	ReadF64(c.data[c.read:], &val)
-	c.read += 8
+	rVal := c.ReadU64()
+	val = *(*float64)(unsafe.Pointer(&rVal))
 	return val
 }
 
 // Read next 8 bytes from crate as float64 without advancing read index
 func (c *Crate) PeekF64() (val float64) {
-	c.CheckRead(8)
-	ReadF64(c.data[c.read:], &val)
+	rVal := c.PeekU64()
+	val = *(*float64)(unsafe.Pointer(&rVal))
 	return val
 }
 
@@ -2234,36 +1697,6 @@ func (c *Crate) AccessF64(val *float64, mode AccessMode) (sliceModeData []byte) 
 	COMPLEX64
 ***************/
 
-type isC64 interface{ ~complex64 }
-
-// Read complex64 from data into dst
-func ReadC64[T isC64](data []byte, dst *T) {
-	_ = data[7]
-	*(*uint64)(unsafe.Pointer(dst)) = ( //
-	/**/ uint64(data[0]) |
-		uint64(data[1])<<8 |
-		uint64(data[2])<<16 |
-		uint64(data[3])<<24 |
-		uint64(data[4])<<32 |
-		uint64(data[5])<<40 |
-		uint64(data[6])<<48 |
-		uint64(data[7])<<56)
-}
-
-// Write complex64 from src into data
-func WriteC64[T isC64](data []byte, src T) {
-	val := *(*uint64)(unsafe.Pointer(&src))
-	_ = data[7]
-	data[0] = byte(val)
-	data[1] = byte(val >> 8)
-	data[2] = byte(val >> 16)
-	data[3] = byte(val >> 24)
-	data[4] = byte(val >> 32)
-	data[5] = byte(val >> 40)
-	data[6] = byte(val >> 48)
-	data[7] = byte(val >> 56)
-}
-
 // Discard next 8 unread bytes in crate
 func (c *Crate) DiscardC64() {
 	c.DiscardN(8)
@@ -2271,28 +1704,29 @@ func (c *Crate) DiscardC64() {
 
 // Return byte slice the next unread complex64 occupies
 func (c *Crate) SliceC64() (slice []byte) {
+	c.CheckRead(8)
 	return c.data[c.read : c.read+8 : c.read+8]
 }
 
 // Write complex64 to crate
 func (c *Crate) WriteC64(val complex64) {
-	c.CheckWrite(8)
-	WriteC64(c.data[c.write:], val)
-	c.write += 8
+	c.WriteF32(real(val))
+	c.WriteF32(imag(val))
 }
 
 // Read next 8 bytes from crate as complex64
 func (c *Crate) ReadC64() (val complex64) {
-	c.CheckRead(8)
-	ReadC64(c.data[c.read:], &val)
-	c.read += 8
+	r := c.ReadF32()
+	i := c.ReadF32()
+	val = complex(r, i)
 	return val
 }
 
 // Read next 8 bytes from crate as complex64 without advancing read index
 func (c *Crate) PeekC64() (val complex64) {
-	c.CheckRead(8)
-	ReadC64(c.data[c.read:], &val)
+	idx := c.read
+	val = c.ReadC64()
+	c.read = idx
 	return val
 }
 
@@ -2322,54 +1756,6 @@ func (c *Crate) AccessC64(val *complex64, mode AccessMode) (sliceModeData []byte
 	COMPLEX128
 ***************/
 
-type isC128 interface{ ~complex128 }
-
-// Read complex128 from data into dst
-func ReadC128[T isC128](data []byte, dst *T) {
-	_ = data[15]
-	*(*uint64)(unsafe.Pointer(dst)) = ( //
-	/**/ uint64(data[0]) |
-		uint64(data[1])<<8 |
-		uint64(data[2])<<16 |
-		uint64(data[3])<<24 |
-		uint64(data[4])<<32 |
-		uint64(data[5])<<40 |
-		uint64(data[6])<<48 |
-		uint64(data[7])<<56)
-	*(*uint64)(unsafe.Pointer(uintptr(unsafe.Pointer(dst)) + 8)) = ( //
-	/**/ uint64(data[8]) |
-		uint64(data[9])<<8 |
-		uint64(data[10])<<16 |
-		uint64(data[11])<<24 |
-		uint64(data[12])<<32 |
-		uint64(data[13])<<40 |
-		uint64(data[14])<<48 |
-		uint64(data[15])<<56)
-}
-
-// Write complex128 from src into data
-func WriteC128[T isC128](data []byte, src T) {
-	val := *(*uint64)(unsafe.Pointer(&src))
-	_ = data[15]
-	data[0] = byte(val)
-	data[1] = byte(val >> 8)
-	data[2] = byte(val >> 16)
-	data[3] = byte(val >> 24)
-	data[4] = byte(val >> 32)
-	data[5] = byte(val >> 40)
-	data[6] = byte(val >> 48)
-	data[7] = byte(val >> 56)
-	val = *(*uint64)(unsafe.Pointer(uintptr(unsafe.Pointer(&src)) + 8))
-	data[8] = byte(val)
-	data[9] = byte(val >> 8)
-	data[10] = byte(val >> 16)
-	data[11] = byte(val >> 24)
-	data[12] = byte(val >> 32)
-	data[13] = byte(val >> 40)
-	data[14] = byte(val >> 48)
-	data[15] = byte(val >> 56)
-}
-
 // Discard next 16 unread bytes in crate
 func (c *Crate) DiscardC128() {
 	c.DiscardN(16)
@@ -2377,28 +1763,29 @@ func (c *Crate) DiscardC128() {
 
 // Return byte slice the next unread complex128 occupies
 func (c *Crate) SliceC128() (slice []byte) {
+	c.CheckRead(16)
 	return c.data[c.read : c.read+16 : c.read+16]
 }
 
 // Write complex128 to crate
 func (c *Crate) WriteC128(val complex128) {
-	c.CheckWrite(16)
-	WriteC128(c.data[c.write:], val)
-	c.write += 16
+	c.WriteF64(real(val))
+	c.WriteF64(imag(val))
 }
 
 // Read next 16 bytes from crate as complex128
 func (c *Crate) ReadC128() (val complex128) {
-	c.CheckRead(16)
-	ReadC128(c.data[c.read:], &val)
-	c.read += 16
+	r := c.ReadF64()
+	i := c.ReadF64()
+	val = complex(r, i)
 	return val
 }
 
 // Read next 16 bytes from crate as complex128 without advancing read index
 func (c *Crate) PeekC128() (val complex128) {
-	c.CheckRead(16)
-	ReadC128(c.data[c.read:], &val)
+	idx := c.read
+	val = c.ReadC128()
+	c.read = idx
 	return val
 }
 
@@ -2433,49 +1820,10 @@ const (
 	countMask      = 127
 	finalCountMask = 255
 	countShift     = 7
-	u64Longer      = 18446744073709551488
+	longerMask     = 18446744073709551488
 )
 
 var countMasks = [9]byte{countMask, countMask, countMask, countMask, countMask, countMask, countMask, countMask, finalCountMask}
-
-// Read msb uvarint encoded uint64 from data into dst,
-// using 1-9 bytes dependant on length.
-// Returns the number of bytes read
-func ReadUVarint[T isU64](data []byte, dst *T) (bytesRead uint64) {
-	_ = data[len(data)-1]
-	longer := true
-	var val, i uint64 = 0, 0
-	for ; longer && i < 9; i += 1 {
-		longer = data[i]&continueMask == continueMask
-		val |= uint64(data[i]&countMasks[i]) << (i * countShift)
-	}
-	*(*uint64)(unsafe.Pointer(dst)) = val
-	return i
-}
-
-// Write uint64 from src into data as msb uvarint,
-// using 1-9 bytes dependant on length.
-// Returns the number of bytes written
-func WriteUVarint[T isU64](data []byte, src T) (bytesWritten uint64) {
-	_ = data[len(data)-1]
-	var val, i, longer uint64 = *(*uint64)(unsafe.Pointer(&src)), 0, 0
-	if val == 0 {
-		data[0] = 0
-		return 1
-	}
-	for ; val > 0; i += 1 {
-		val = val >> (countShift * i)
-		longer = val & u64Longer
-		longer |= longer >> 1
-		longer |= longer >> 2
-		longer |= longer >> 4
-		longer |= longer >> 8
-		longer |= longer >> 16
-		longer |= longer >> 32
-		data[i] = byte(val&countMask) | byte(longer&continueMask)
-	}
-	return i
-}
 
 // Discard next 1-9 unread bytes in crate,
 // dependant on size of the UVarint
@@ -2487,36 +1835,46 @@ func (c *Crate) DiscardUVarint() (bytesDiscarded uint64) {
 
 // Return byte slice the next unread UVarint (uint64) occupies
 func (c *Crate) SliceUVarint() (slice []byte) {
-	print("")
 	n := findUVarintBytesFromData(c.data[c.read:])
+	c.CheckRead(n)
 	return c.data[c.read : c.read+n : c.read+n]
 }
 
 // Write uint64 to crate as msb uvarint.
 // Uses 1-9 bytes dependant on size of value
 func (c *Crate) WriteUVarint(val uint64) (bytesWritten uint64) {
-	bytes := findUVarintBytesFromValue(val)
-	c.CheckWrite(bytes)
-	WriteUVarint(c.data[c.write:], val)
-	c.write += bytes
-	return bytes
+	longer := false
+	longerBit := uint8(0)
+	for val > 0 || bytesWritten == 0 {
+		longer = val > countMask && bytesWritten < 8
+		longerBit = *(*uint8)(unsafe.Pointer(&longer)) << countShift
+		c.CheckWrite(1)
+		c.data[c.write] = byte(val)&countMasks[bytesWritten] | longerBit
+		c.write += 1
+		bytesWritten += 1
+		val = val >> countShift
+	}
+	return bytesWritten
 }
 
 // Read next 1-9 bytes from crate as msb uvarint encoded uint64
 func (c *Crate) ReadUVarint() (val uint64, bytesRead uint64) {
-	n := findUVarintBytesFromData(c.data[c.read:])
-	c.CheckRead(n)
-	bytesRead = ReadUVarint(c.data[c.read:], &val)
-	c.read += bytesRead
+	longer := true
+	for ; longer && bytesRead < 9; bytesRead += 1 {
+		c.CheckRead(1)
+		longer = c.data[c.read]&continueMask == continueMask
+		val |= uint64(c.data[c.read]&countMasks[bytesRead]) << (bytesRead * countShift)
+		c.read += 1
+	}
 	return val, bytesRead
 }
 
 // Read next 1-9 bytes from crate as msb uvarint encoded uint64
 // without advancing read index
 func (c *Crate) PeekUVarint() (val uint64, bytesRead uint64) {
-	n := findUVarintBytesFromData(c.data[c.read:])
-	c.CheckRead(n)
-	bytesRead = ReadUVarint(c.data[c.read:], &val)
+	idx := c.read
+	val, bytesRead = c.ReadUVarint()
+	c.read = idx
 	return val, bytesRead
 }
 
@@ -2546,29 +1904,8 @@ func (c *Crate) AccessUVarint(val *uint64, mode AccessMode) (bytesUsed uint64, s
 	VARINT
 ***************/
 
-// Read msb zig-zag varint encoded int64 from data into dst,
-// using 1-9 bytes dependant on size.
-// Returns the number of bytes read
-func ReadVarint[T isI64](data []byte, dst *T) (bytesRead uint64) {
-	var uVal uint64
-	bytes := ReadUVarint(data, &uVal)
-	iVal := zigZagDecode(uVal)
-	*(*int64)(unsafe.Pointer(dst)) = iVal
-	return bytes
-}
-
-// Write int64 from src into data as msb zig-zag varint,
-// using 1-9 bytes dependant on size.
-// Returns the number of bytes written
-func WriteVarint[T isI64](data []byte, src T) (bytesWritten uint64) {
-	var iVal int64 = *(*int64)(unsafe.Pointer(&src))
-	uVal := zigZagEncode(iVal)
-	bytes := WriteUVarint(data, uVal)
-	return bytes
-}
-
 // Discard next 1-9 unread bytes in crate,
-// dependant on size of the UVarint
+// dependant on size of the Varint
 func (c *Crate) DiscardVarint() (bytesDiscarded uint64) {
 	n := findUVarintBytesFromData(c.data[c.read:])
 	c.DiscardN(n)
@@ -2578,34 +1915,30 @@ func (c *Crate) DiscardVarint() (bytesDiscarded uint64) {
 // Return byte slice the next unread Varint (int64) occupies
 func (c *Crate) SliceVarint() (slice []byte) {
 	n := findUVarintBytesFromData(c.data[c.read:])
+	c.CheckRead(n)
 	return c.data[c.read : c.read+n : c.read+n]
 }
 
 // Write int64 to crate as msb zig-zag varint.
 // Uses 1-9 bytes dependant on size of value
 func (c *Crate) WriteVarint(val int64) (bytesWritten uint64) {
-	bytes := findVarintBytesFromValue(val)
-	c.CheckWrite(bytes)
-	WriteVarint(c.data[c.write:], val)
-	c.write += bytes
-	return bytes
+	uVal := zigZagEncode(val)
+	bytesWritten = c.WriteUVarint(uVal)
+	return bytesWritten
 }
 
 // Read next 1-9 bytes from crate as msb zig-zag varint encoded int64
 func (c *Crate) ReadVarint() (val int64, bytesRead uint64) {
-	n := findUVarintBytesFromData(c.data[c.read:])
-	c.CheckRead(n)
-	bytesRead = ReadVarint(c.data[c.read:], &val)
-	c.read += bytesRead
+	uVal, bytesRead := c.ReadUVarint()
+	val = zigZagDecode(uVal)
 	return val, bytesRead
 }
 
 // Read next 1-9 bytes from crate as msb zig-zag varint encoded int64
 // without advancing read index
 func (c *Crate) PeekVarint() (val int64, bytesRead uint64) {
-	n := findUVarintBytesFromData(c.data[c.read:])
-	c.CheckRead(n)
-	bytesRead = ReadVarint(c.data[c.read:], &val)
+	uVal, bytesRead := c.PeekUVarint()
+	val = zigZagDecode(uVal)
 	return val, bytesRead
 }
 
@@ -2632,48 +1965,22 @@ func (c *Crate) AccessVarint(val *int64, mode AccessMode) (bytesUsed uint64, sli
 }
 
 /**************
-	LENGTH-OR-NIL-COUNTER
+	LENGTH-OR-NIL
 ***************/
 
-// Read length or nil (UVarint where 0 = nil, 1 = 0, 2 = 1...) from data into dst,
-// using 1-9 bytes dependant on length.
-// Returns the number of bytes read and whether the value represents nil instead of zero
-func ReadLengthOrNil[T isU64](data []byte, dst *T) (bytesRead uint64, isNil bool) {
-	var val uint64
-	bytes := ReadUVarint(data, &val)
-	isNil = val == 0
-	if !isNil {
-		val -= 1
-	}
-	*(*uint64)(unsafe.Pointer(dst)) = val
-	return bytes, isNil
-}
-
-// Write length or nil (UVarint where 0 = nil, 1 = 0, 2 = 1...) from src into data.
-// Uses 1-9 bytes dependant on length, returns number of bytes written
-//
-// Because 0 is used to represent nil, the maximum length that can be written is
-// 18446744073709551614 (WILL NOT check value for correctness)
-func WriteLengthOrNil[T isU64](data []byte, src T, isNil bool) (bytesWritten uint64) {
-	val := *(*uint64)(unsafe.Pointer(&src)) + 1
-	if isNil {
-		val = 0
-	}
-	bytes := WriteUVarint(data, val)
-	return bytes
-}
-
 // Discard next 1-9 unread bytes in crate,
-// dependant on length of length counter
+// dependant on length or nil (UVarint where 0 = nil, 1 = 0, 2 = 1...)
 func (c *Crate) DiscardLengthOrNil() (bytesDiscarded uint64) {
-	n := findUVarintBytesFromData(c.data[c.read:])
-	c.DiscardN(n)
-	return n
+	bytesDiscarded = findUVarintBytesFromData(c.data[c.read:])
+	c.DiscardN(bytesDiscarded)
+	return bytesDiscarded
 }
 
-// Return byte slice the next unread length counter occupies
+// Return byte slice the next unread length or nil occupies
+// (UVarint where 0 = nil, 1 = 0, 2 = 1...)
 func (c *Crate) SliceLengthOrNil() (slice []byte) {
 	n := findUVarintBytesFromData(c.data[c.read:])
+	c.CheckRead(n)
 	return c.data[c.read : c.read+n : c.read+n]
 }
 
@@ -2683,18 +1990,17 @@ func (c *Crate) SliceLengthOrNil() (slice []byte) {
 // Because 0 is used to represent nil, the maximum length that can be written is
 // 18446744073709551614 (WILL NOT check value for correctness)
 func (c *Crate) WriteLengthOrNil(length uint64, isNil bool) (bytesWritten uint64) {
-	bytes := findUVarintBytesFromValue(length + 1)
-	c.CheckWrite(bytes)
-	WriteLengthOrNil(c.data[c.write:], length, isNil)
-	c.write += bytes
-	return bytes
+	length += 1
+	if isNil {
+		length = 0
+	}
+	bytesWritten = c.WriteUVarint(length)
+	return bytesWritten
 }
 
 // Read next 1-9 bytes from crate as length or nil (UVarint where 0 = nil, 1 = 0, 2 = 1...),
 func (c *Crate) ReadLengthOrNil() (length uint64, isNil bool, bytesRead uint64) {
-	n := findUVarintBytesFromData(c.data[c.read:])
-	c.CheckRead(n)
-	bytesRead, isNil = ReadLengthOrNil(c.data[c.read:], &length)
+	length, isNil, bytesRead = c.PeekLengthOrNil()
 	c.read += bytesRead
 	return length, isNil, bytesRead
 }
@@ -2702,9 +2008,11 @@ func (c *Crate) ReadLengthOrNil() (length uint64, isNil bool, bytesRead uint64) 
 // Read next 1-9 bytes from crate as length or nil (UVarint where 0 = nil, 1 = 0, 2 = 1...)
 // without advancing read index
 func (c *Crate) PeekLengthOrNil() (length uint64, isNil bool, bytesRead uint64) {
-	n := findUVarintBytesFromData(c.data[c.read:])
-	c.CheckRead(n)
-	bytesRead, isNil = ReadLengthOrNil(c.data[c.read:], &length)
+	length, bytesRead = c.PeekUVarint()
+	isNil = length == 0
+	if !isNil {
+		length -= 1
+	}
 	return length, isNil, bytesRead
 }
 
@@ -2735,47 +2043,6 @@ func (c *Crate) AccessLengthOrNil(length *uint64, writeNil bool, mode AccessMode
 	STRING
 ***************/
 
-type isString interface{ ~string }
-
-// Read string of specified byte length from data into dst,
-func ReadString[T isString](data []byte, length uint64, dst *T) {
-	if length == 0 {
-		return
-	}
-	_ = data[length-1]
-	bytes := make([]byte, length)
-	copy(bytes, data[:length])
-	targetPtr := (*stringInternals)(unsafe.Pointer(dst))
-	targetPtr.data = (*sliceInternals)(unsafe.Pointer(&bytes)).data
-	targetPtr.length = len(bytes)
-}
-
-// Read string with preceding length counter from data into dst
-func ReadStringWithCounter[T isString](data []byte, dst *T) {
-	var length, n uint64
-	n, _ = ReadLengthOrNil(data, &length)
-	ReadString(data[n:], length, dst)
-}
-
-// Write string from src into data,
-func WriteString[T isString](data []byte, src T) {
-	length := uint64((*stringInternals)(unsafe.Pointer(&src)).length)
-	_ = data[length]
-	bytes := make([]byte, length, length)
-	(*sliceInternals)(unsafe.Pointer(&bytes)).data = (*stringInternals)(unsafe.Pointer(&src)).data
-	copy(data[:length], bytes)
-}
-
-// Write string with preceding length counter from src into data,
-func WriteStringWithCounter[T isString](data []byte, src T) {
-	length := uint64((*stringInternals)(unsafe.Pointer(&src)).length)
-	start := WriteLengthOrNil(data, length, false)
-	_ = data[start+length]
-	bytes := make([]byte, length, length)
-	(*sliceInternals)(unsafe.Pointer(&bytes)).data = (*stringInternals)(unsafe.Pointer(&src)).data
-	copy(data[start:start+length], bytes)
-}
-
 // Discard next unread string of specified length in crate
 func (c *Crate) DiscardString(length uint64) {
 	c.DiscardN(length)
@@ -2783,14 +2050,14 @@ func (c *Crate) DiscardString(length uint64) {
 
 // Return byte slice the next unread string of specified length occupies
 func (c *Crate) SliceString(length uint64) (slice []byte) {
+	c.CheckRead(length)
 	return c.data[c.read : c.read+length : c.read+length]
 }
 
 // Discard next unread string with preceding length counter in crate
 func (c *Crate) DiscardStringWithCounter() {
-	var length, n uint64
-	n, _ = ReadLengthOrNil(c.data[c.read:], &length)
-	c.DiscardN(length + n)
+	length, _, _ := c.ReadLengthOrNil()
+	c.DiscardN(length)
 }
 
 // Return byte slice the next unread string-with-length-counter occupies (not including counter)
@@ -2803,7 +2070,9 @@ func (c *Crate) SliceStringWithCounter() (slice []byte) {
 func (c *Crate) WriteString(val string) {
 	length := len64str(val)
 	c.CheckWrite(length)
-	WriteString(c.data[c.write:], val)
+	bytes := make([]byte, length)
+	(*sliceInternals)(unsafe.Pointer(&bytes)).data = (*stringInternals)(unsafe.Pointer(&val)).data
+	copy(c.data[c.write:c.write+length], bytes)
 	c.write += length
 }
 
@@ -2811,15 +2080,20 @@ func (c *Crate) WriteString(val string) {
 func (c *Crate) WriteStringWithCounter(val string) {
 	length := len64str(val)
 	c.WriteLengthOrNil(length, false)
-	c.CheckWrite(length)
-	WriteString(c.data[c.write:], val)
-	c.write += length
+	c.WriteString(val)
 }
 
 // Read next string of specified byte length from crate
 func (c *Crate) ReadString(length uint64) (val string) {
+	if length == 0 {
+		return val
+	}
 	c.CheckRead(length)
-	ReadString(c.data[c.read:], length, &val)
+	bytes := make([]byte, length)
+	copy(bytes, c.data[c.read:c.read+length])
+	targetPtr := (*stringInternals)(unsafe.Pointer(&val))
+	targetPtr.data = (*sliceInternals)(unsafe.Pointer(&bytes)).data
+	targetPtr.length = len(bytes)
 	c.read += length
 	return val
 }
@@ -2827,25 +2101,23 @@ func (c *Crate) ReadString(length uint64) (val string) {
 // Read next string with preceding length counter from crate
 func (c *Crate) ReadStringWithCounter() (val string) {
 	length, _, _ := c.ReadLengthOrNil()
-	c.CheckRead(length)
-	ReadString(c.data[c.read:], length, &val)
-	c.read += length
+	val = c.ReadString(length)
 	return val
 }
 
 // Read next string of specified byte length from crate without advancing read index
 func (c *Crate) PeekString(length uint64) (val string) {
-	c.CheckRead(length)
-	ReadString(c.data[c.read:], length, &val)
+	idx := c.read
+	val = c.ReadString(length)
+	c.read = idx
 	return val
 }
 
 // Read next string with preceding length counter from crate without advancing read index
 func (c *Crate) PeekStringWithCounter() (val string) {
-	length, _, n := c.ReadLengthOrNil()
-	c.CheckRead(length)
-	ReadString(c.data[c.read:], length, &val)
-	c.read -= n
+	idx := c.read
+	val = c.ReadStringWithCounter()
+	c.read = idx
 	return val
 }
 
@@ -2897,53 +2169,6 @@ func (c *Crate) AccessStringWithCounter(val *string, mode AccessMode) (sliceMode
 	[]BYTE
 ***************/
 
-type isByteSlice interface{ ~[]byte }
-
-// Read byte slice of specified length from data into dst,
-func ReadBytes[T isByteSlice](data []byte, length uint64, dst *T) {
-	if length == 0 {
-		return
-	}
-	_ = data[length-1]
-	bytes := make([]byte, length)
-	copy(bytes, data[:length])
-	targetPtr := (*sliceInternals)(unsafe.Pointer(dst))
-	targetPtr.data = (*sliceInternals)(unsafe.Pointer(&bytes)).data
-	targetPtr.capacity = cap(bytes)
-	targetPtr.length = len(bytes)
-}
-
-// Read byte slice with preceding length counter from data into dst
-func ReadBytesWithCounter[T isByteSlice](data []byte, dst *T) {
-	var length, n uint64
-	isNil := false
-	n, isNil = ReadLengthOrNil(data, &length)
-	if isNil {
-		*(*[]byte)(unsafe.Pointer(dst)) = nil
-		return
-	}
-	ReadBytes(data[n:], length, dst)
-}
-
-// Write byte slice from src into data,
-func WriteBytes[T isByteSlice](data []byte, src T) {
-	bytes := *(*[]byte)(unsafe.Pointer(&src))
-	copy(data, bytes)
-}
-
-// Write byte slice with preceding length counter from src into data,
-func WriteBytesWithCounter[T isString](data []byte, src T) {
-	bytes := *(*[]byte)(unsafe.Pointer(&src))
-	length := len64(bytes)
-	isNil := data == nil
-	start := WriteLengthOrNil(data, length, isNil)
-	if isNil || length == 0 {
-		return
-	}
-	_ = data[start+length]
-	copy(data[start:start+length], bytes)
-}
-
 // Discard next unread bytes of specified length in crate
 func (c *Crate) DiscardBytes(length uint64) {
 	c.DiscardN(length)
@@ -2951,14 +2176,14 @@ func (c *Crate) DiscardBytes(length uint64) {
 
 // Return the next unread byte slice of specified length
 func (c *Crate) SliceBytes(length uint64) (slice []byte) {
+	c.CheckRead(length)
 	return c.data[c.read : c.read+length : c.read+length]
 }
 
 // Discard next unread bytes with preceding length counter in crate
 func (c *Crate) DiscardBytesWithCounter() {
-	var length, n uint64
-	n, _ = ReadLengthOrNil(c.data[c.read:], &length)
-	c.DiscardN(length + n)
+	length, _, _ := c.ReadLengthOrNil()
+	c.DiscardN(length)
 }
 
 // Return byte slice the next unread bytes-with-length-counter occupies (not including counter)
@@ -2970,8 +2195,11 @@ func (c *Crate) SliceBytesWithCounter() (slice []byte) {
 // Write bytes to crate
 func (c *Crate) WriteBytes(val []byte) {
 	length := len64(val)
+	if val == nil || length == 0 {
+		return
+	}
 	c.CheckWrite(length)
-	WriteBytes(c.data[c.write:], val)
+	copy(c.data[c.write:c.write+length], val)
 	c.write += length
 }
 
@@ -2980,18 +2208,14 @@ func (c *Crate) WriteBytesWithCounter(val []byte) {
 	length := len64(val)
 	isNil := val == nil
 	c.WriteLengthOrNil(length, isNil)
-	if isNil || length == 0 {
-		return
-	}
-	c.CheckWrite(length)
-	WriteBytes(c.data[c.write:], val)
-	c.write += length
+	c.WriteBytes(val)
 }
 
 // Read next bytes slice of specified length from crate
 func (c *Crate) ReadBytes(length uint64) (val []byte) {
 	c.CheckRead(length)
-	ReadBytes(c.data[c.read:], length, &val)
+	val = make([]byte, length)
+	copy(val, c.data[c.read:c.read+length])
 	c.read += length
 	return val
 }
@@ -3002,29 +2226,23 @@ func (c *Crate) ReadBytesWithCounter() (val []byte) {
 	if isNil {
 		return nil
 	}
-	c.CheckRead(length)
-	ReadBytes(c.data[c.read:], length, &val)
-	c.read += length
+	val = c.ReadBytes(length)
 	return val
 }
 
 // Read next bytes slice of specified  length from crate without advancing read index
 func (c *Crate) PeekBytes(length uint64) (val []byte) {
-	c.CheckRead(length)
-	ReadBytes(c.data[c.read:], length, &val)
+	idx := c.read
+	val = c.ReadBytes(length)
+	c.read = idx
 	return val
 }
 
 // Read next bytes slice with preceding length counter from crate without advancing read index
 func (c *Crate) PeekBytesWithCounter() (val []byte) {
-	length, isNil, n := c.ReadLengthOrNil()
-	if isNil {
-		c.read -= n
-		return nil
-	}
-	c.CheckRead(length)
-	ReadBytes(c.data[c.read:], length, &val)
-	c.read -= n
+	idx := c.read
+	val = c.ReadBytesWithCounter()
+	c.read = idx
 	return val
 }
 
@@ -3295,34 +2513,46 @@ func findVarintBytesFromValue(value int64) uint64 {
 	return findUVarintBytesFromValue(uVal)
 }
 
+type signedCompress interface {
+	int32 | int64
+}
+
+func boolInt(condition bool) uint8 {
+	return *(*uint8)(unsafe.Pointer(&condition))
+}
+
+func intBool(val uint8) bool {
+	return *(*bool)(unsafe.Pointer(&val))
+}
+
+func twosComplimentShrink[T signedCompress](value T, largeMask T, smallMask T) T {
+	if value < 0 {
+		value = (((value ^ largeMask) + 1) ^ smallMask) + 1
+	}
+	return value
+}
+
+func twosComplimentExpand[T signedCompress](value T, minSmall T, smallMask T, largeMask T) T {
+	if value&minSmall == minSmall {
+		if value^minSmall == 0 {
+			return (minSmall - 1) ^ largeMask
+		}
+		value = (((value ^ smallMask) + 1) ^ largeMask) + 1
+	}
+	return value
+}
+
 const (
-	maxU24  = 16777215
-	maxI24  = 8388607
-	minI24  = -8388608
-	minI24p = 8388608
-	minI24u = maxU32 - minI24p + 1
-
-	maxU32 = 4294967295
-
-	maxU40  = 1099511627775
-	maxI40  = 549755813887
-	minI40  = -549755813888
-	minI40p = 549755813888
-	minI40u = maxU64 - minI40p + 1
-
-	maxU48  = 281474976710655
-	maxI48  = 140737488355327
-	minI48  = -140737488355328
-	minI48p = 140737488355328
-	minI48u = maxU64 - minI48p + 1
-
-	maxU56  = 72057594037927935
-	maxI56  = 36028797018963967
-	minI56  = -36028797018963968
-	minI56p = 36028797018963968
-	minI56u = maxU64 - minI56p + 1
-
-	maxU64 = 18446744073709551615
+	maskI24 int32 = 16777215          // all bits set int24
+	minI24  int32 = 8388608           // most negative int24
+	maskI32 int32 = -1                // all bits set int32
+	maskI40 int64 = 1099511627775     // all bits set I40
+	minI40  int64 = 549755813888      // most negative I40
+	maskI48 int64 = 281474976710655   // all bits set I48
+	minI48  int64 = 140737488355328   // most negative I48
+	maskI56 int64 = 72057594037927935 // all bits set I56
+	minI56  int64 = 36028797018963968 // most negative I56
+	maskI64 int64 = -1                // all bits set I64
 )
 
 type integer interface {
