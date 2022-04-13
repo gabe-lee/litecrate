@@ -24,15 +24,15 @@ type person struct {
 	Steps    uint32 // uint24
 }
 
-func (p *person) AccessSelf(crate *lite.Crate, mode lite.AccessMode) {
-	crate.AccessU8(&p.Age, mode)
-	crate.AccessStringWithCounter(&p.Name, mode)
-	crate.AccessI64(&p.Mood, mode)
-	lite.AccessMap(crate, mode, &p.Phone, crate.AccessStringWithCounter, crate.AccessC128)
-	lite.AccessSlice(crate, mode, &p.Children, func(child *person, mode lite.AccessMode) []byte {
-		return crate.AccessSelfAccessor(child, mode)
+func (p *person) UseSelf(crate *lite.Crate, mode lite.UseMode) {
+	crate.UseU8(&p.Age, mode)
+	crate.UseStringWithCounter(&p.Name, mode)
+	crate.UseI64(&p.Mood, mode)
+	lite.UseMap(crate, mode, &p.Phone, crate.UseStringWithCounter, crate.UseC128)
+	lite.UseSlice(crate, mode, &p.Children, func(child *person, mode lite.UseMode) []byte {
+		return crate.UseSelfSerializer(child, mode)
 	})
-	crate.AccessU24(&p.Steps, mode)
+	crate.UseU24(&p.Steps, mode)
 }
 
 type jsonPerson struct {
@@ -137,14 +137,14 @@ func BenchmarkSendPersonLiteCrate(b *testing.B) {
 	b.ReportAllocs()
 	for i := 0; i < b.N; i++ {
 		sendCrate := lite.NewCrate(10, lite.FlagAutoDouble)
-		sendCrate.WriteSelfAccessor(&benchPerson)
+		sendCrate.WriteSelfSerializer(&benchPerson)
 		recvCrate := lite.OpenCrate(sendCrate.Data(), lite.FlagManualExact)
 		personB := person{}
-		recvCrate.ReadSelfAccessor(&personB)
+		recvCrate.ReadSelfSerializer(&personB)
 	}
 	b.StopTimer()
 	sendCrate := lite.NewCrate(10, lite.FlagAutoDouble)
-	sendCrate.WriteSelfAccessor(&benchPerson)
+	sendCrate.WriteSelfSerializer(&benchPerson)
 	b.ReportMetric(float64(sendCrate.Len()), "bytes/msg")
 	b.StartTimer()
 }
@@ -214,23 +214,23 @@ func FuzzBool(f *testing.F) {
 	f.Fuzz(func(t *testing.T, a bool, b bool) {
 		smallCrate.Reset()
 		var c, d bool
-		smallCrate.AccessBool(&a, lite.Write)
-		smallCrate.AccessBool(&b, lite.Write)
-		smallCrate.AccessBool(&c, lite.Peek)
+		smallCrate.UseBool(&a, lite.Write)
+		smallCrate.UseBool(&b, lite.Write)
+		smallCrate.UseBool(&c, lite.Peek)
 		if c != a {
 			t.Errorf("PeekBool - FAIL: %v != %v", c, a)
 		}
 		if smallCrate.ReadIndex() != 0 {
 			t.Error("PeekBool - FAIL: index was increased")
 		}
-		smallCrate.AccessBool(nil, lite.Discard)
+		smallCrate.UseBool(nil, lite.Discard)
 		if smallCrate.ReadIndex() != 1 {
 			t.Error("DiscardBool - FAIL: index != 1")
 		}
 		if smallCrate.WriteIndex() != 2 {
 			t.Error("WriteBool - FAIL: index != 2")
 		}
-		slice := smallCrate.AccessBool(&b, lite.Slice)
+		slice := smallCrate.UseBool(&b, lite.Slice)
 		if len(slice) != 1 || cap(slice) != 1 {
 			t.Error("SliceBool - FAIL: len != 1 and/or cap != 1")
 		}
@@ -252,23 +252,23 @@ func FuzzU8(f *testing.F) {
 	f.Fuzz(func(t *testing.T, a uint8, b uint8) {
 		smallCrate.Reset()
 		var c, d uint8
-		smallCrate.AccessU8(&a, lite.Write)
-		smallCrate.AccessU8(&b, lite.Write)
-		smallCrate.AccessU8(&c, lite.Peek)
+		smallCrate.UseU8(&a, lite.Write)
+		smallCrate.UseU8(&b, lite.Write)
+		smallCrate.UseU8(&c, lite.Peek)
 		if c != a {
 			t.Errorf("PeekU8 - FAIL: %d != %d", c, a)
 		}
 		if smallCrate.ReadIndex() != 0 {
 			t.Error("PeekU8 - FAIL: index was increased")
 		}
-		smallCrate.AccessU8(nil, lite.Discard)
+		smallCrate.UseU8(nil, lite.Discard)
 		if smallCrate.ReadIndex() != 1 {
 			t.Error("DiscardU8 - FAIL: index != 1")
 		}
 		if smallCrate.WriteIndex() != 2 {
 			t.Error("WriteU8 - FAIL: index != 2")
 		}
-		slice := smallCrate.AccessU8(&b, lite.Slice)
+		slice := smallCrate.UseU8(&b, lite.Slice)
 		if len(slice) != 1 || cap(slice) != 1 {
 			t.Error("SliceU8 - FAIL: len != 1 and/or cap != 1")
 		}
@@ -290,23 +290,23 @@ func FuzzI8(f *testing.F) {
 	f.Fuzz(func(t *testing.T, a int8, b int8) {
 		smallCrate.Reset()
 		var c, d int8
-		smallCrate.AccessI8(&a, lite.Write)
-		smallCrate.AccessI8(&b, lite.Write)
-		smallCrate.AccessI8(&c, lite.Peek)
+		smallCrate.UseI8(&a, lite.Write)
+		smallCrate.UseI8(&b, lite.Write)
+		smallCrate.UseI8(&c, lite.Peek)
 		if c != a {
 			t.Errorf("PeekI8 - FAIL: %d != %d", c, a)
 		}
 		if smallCrate.ReadIndex() != 0 {
 			t.Error("PeekI8 - FAIL: index was increased")
 		}
-		smallCrate.AccessI8(nil, lite.Discard)
+		smallCrate.UseI8(nil, lite.Discard)
 		if smallCrate.ReadIndex() != 1 {
 			t.Error("DiscardI8 - FAIL: index != 1")
 		}
 		if smallCrate.WriteIndex() != 2 {
 			t.Error("WriteI8 - FAIL: index != 2")
 		}
-		slice := smallCrate.AccessI8(&b, lite.Slice)
+		slice := smallCrate.UseI8(&b, lite.Slice)
 		if len(slice) != 1 || cap(slice) != 1 {
 			t.Error("SliceI8 - FAIL: len != 1 and/or cap != 1")
 		}
@@ -328,23 +328,23 @@ func FuzzU16(f *testing.F) {
 	f.Fuzz(func(t *testing.T, a uint16, b uint16) {
 		smallCrate.Reset()
 		var c, d uint16
-		smallCrate.AccessU16(&a, lite.Write)
-		smallCrate.AccessU16(&b, lite.Write)
-		smallCrate.AccessU16(&c, lite.Peek)
+		smallCrate.UseU16(&a, lite.Write)
+		smallCrate.UseU16(&b, lite.Write)
+		smallCrate.UseU16(&c, lite.Peek)
 		if c != a {
 			t.Errorf("PeekU16 - FAIL: %d != %d", c, a)
 		}
 		if smallCrate.ReadIndex() != 0 {
 			t.Error("PeekU16 - FAIL: index was increased")
 		}
-		smallCrate.AccessU16(nil, lite.Discard)
+		smallCrate.UseU16(nil, lite.Discard)
 		if smallCrate.ReadIndex() != 2 {
 			t.Error("DiscardU16 - FAIL: index != 2")
 		}
 		if smallCrate.WriteIndex() != 4 {
 			t.Error("WriteU16 - FAIL: index != 4")
 		}
-		slice := smallCrate.AccessU16(&b, lite.Slice)
+		slice := smallCrate.UseU16(&b, lite.Slice)
 		if len(slice) != 2 || cap(slice) != 2 {
 			t.Error("SliceU16 - FAIL: len != 2 and/or cap != 2")
 		}
@@ -366,23 +366,23 @@ func FuzzI16(f *testing.F) {
 	f.Fuzz(func(t *testing.T, a int16, b int16) {
 		smallCrate.Reset()
 		var c, d int16
-		smallCrate.AccessI16(&a, lite.Write)
-		smallCrate.AccessI16(&b, lite.Write)
-		smallCrate.AccessI16(&c, lite.Peek)
+		smallCrate.UseI16(&a, lite.Write)
+		smallCrate.UseI16(&b, lite.Write)
+		smallCrate.UseI16(&c, lite.Peek)
 		if c != a {
 			t.Errorf("PeekI16 - FAIL: %d != %d", c, a)
 		}
 		if smallCrate.ReadIndex() != 0 {
 			t.Error("PeekI16 - FAIL: index was increased")
 		}
-		smallCrate.AccessI16(nil, lite.Discard)
+		smallCrate.UseI16(nil, lite.Discard)
 		if smallCrate.ReadIndex() != 2 {
 			t.Error("DiscardI16 - FAIL: index != 2")
 		}
 		if smallCrate.WriteIndex() != 4 {
 			t.Error("WriteI16 - FAIL: index != 4")
 		}
-		slice := smallCrate.AccessI16(&b, lite.Slice)
+		slice := smallCrate.UseI16(&b, lite.Slice)
 		if len(slice) != 2 || cap(slice) != 2 {
 			t.Error("SliceI16 - FAIL: len != 2 and/or cap != 2")
 		}
@@ -406,23 +406,23 @@ func FuzzU24(f *testing.F) {
 		b = b % 16777216
 		smallCrate.Reset()
 		var c, d uint32
-		smallCrate.AccessU24(&a, lite.Write)
-		smallCrate.AccessU24(&b, lite.Write)
-		smallCrate.AccessU24(&c, lite.Peek)
+		smallCrate.UseU24(&a, lite.Write)
+		smallCrate.UseU24(&b, lite.Write)
+		smallCrate.UseU24(&c, lite.Peek)
 		if c != a {
 			t.Errorf("PeekU24 - FAIL: %d != %d", c, a)
 		}
 		if smallCrate.ReadIndex() != 0 {
 			t.Error("PeekU24 - FAIL: index was increased")
 		}
-		smallCrate.AccessU24(nil, lite.Discard)
+		smallCrate.UseU24(nil, lite.Discard)
 		if smallCrate.ReadIndex() != 3 {
 			t.Error("DiscardU24 - FAIL: index != 3")
 		}
 		if smallCrate.WriteIndex() != 6 {
 			t.Error("WriteU24 - FAIL: index != 6")
 		}
-		slice := smallCrate.AccessU24(&b, lite.Slice)
+		slice := smallCrate.UseU24(&b, lite.Slice)
 		if len(slice) != 3 || cap(slice) != 3 {
 			t.Error("SliceU24 - FAIL: len != 3 and/or cap != 3")
 		}
@@ -450,23 +450,23 @@ func FuzzI24(f *testing.F) {
 		}
 		smallCrate.Reset()
 		var c, d int32
-		smallCrate.AccessI24(&a, lite.Write)
-		smallCrate.AccessI24(&b, lite.Write)
-		smallCrate.AccessI24(&c, lite.Peek)
+		smallCrate.UseI24(&a, lite.Write)
+		smallCrate.UseI24(&b, lite.Write)
+		smallCrate.UseI24(&c, lite.Peek)
 		if c != a {
 			t.Errorf("PeekI24 - FAIL: %d != %d", c, a)
 		}
 		if smallCrate.ReadIndex() != 0 {
 			t.Error("PeekI24 - FAIL: index was increased")
 		}
-		smallCrate.AccessI24(nil, lite.Discard)
+		smallCrate.UseI24(nil, lite.Discard)
 		if smallCrate.ReadIndex() != 3 {
 			t.Error("DiscardI24 - FAIL: index != 3")
 		}
 		if smallCrate.WriteIndex() != 6 {
 			t.Error("WriteI24 - FAIL: index != 6")
 		}
-		slice := smallCrate.AccessI24(&b, lite.Slice)
+		slice := smallCrate.UseI24(&b, lite.Slice)
 		if len(slice) != 3 || cap(slice) != 3 {
 			t.Error("SliceI24 - FAIL: len != 3 and/or cap != 3")
 		}
@@ -488,23 +488,23 @@ func FuzzU32(f *testing.F) {
 	f.Fuzz(func(t *testing.T, a uint32, b uint32) {
 		smallCrate.Reset()
 		var c, d uint32
-		smallCrate.AccessU32(&a, lite.Write)
-		smallCrate.AccessU32(&b, lite.Write)
-		smallCrate.AccessU32(&c, lite.Peek)
+		smallCrate.UseU32(&a, lite.Write)
+		smallCrate.UseU32(&b, lite.Write)
+		smallCrate.UseU32(&c, lite.Peek)
 		if c != a {
 			t.Errorf("PeekU32 - FAIL: %d != %d", c, a)
 		}
 		if smallCrate.ReadIndex() != 0 {
 			t.Error("PeekU32 - FAIL: index was increased")
 		}
-		smallCrate.AccessU32(nil, lite.Discard)
+		smallCrate.UseU32(nil, lite.Discard)
 		if smallCrate.ReadIndex() != 4 {
 			t.Error("DiscardU32 - FAIL: index != 4")
 		}
 		if smallCrate.WriteIndex() != 8 {
 			t.Error("WriteU32 - FAIL: index != 8")
 		}
-		slice := smallCrate.AccessU32(&b, lite.Slice)
+		slice := smallCrate.UseU32(&b, lite.Slice)
 		if len(slice) != 4 || cap(slice) != 4 {
 			t.Error("SliceU32 - FAIL: len != 4 and/or cap != 4")
 		}
@@ -526,23 +526,23 @@ func FuzzI32(f *testing.F) {
 	f.Fuzz(func(t *testing.T, a int32, b int32) {
 		smallCrate.Reset()
 		var c, d int32
-		smallCrate.AccessI32(&a, lite.Write)
-		smallCrate.AccessI32(&b, lite.Write)
-		smallCrate.AccessI32(&c, lite.Peek)
+		smallCrate.UseI32(&a, lite.Write)
+		smallCrate.UseI32(&b, lite.Write)
+		smallCrate.UseI32(&c, lite.Peek)
 		if c != a {
 			t.Errorf("PeekI32 - FAIL: %d != %d", c, a)
 		}
 		if smallCrate.ReadIndex() != 0 {
 			t.Error("PeekI32 - FAIL: index was increased")
 		}
-		smallCrate.AccessI32(nil, lite.Discard)
+		smallCrate.UseI32(nil, lite.Discard)
 		if smallCrate.ReadIndex() != 4 {
 			t.Error("DiscardI32 - FAIL: index != 4")
 		}
 		if smallCrate.WriteIndex() != 8 {
 			t.Error("WriteI32 - FAIL: index != 8")
 		}
-		slice := smallCrate.AccessI32(&b, lite.Slice)
+		slice := smallCrate.UseI32(&b, lite.Slice)
 		if len(slice) != 4 || cap(slice) != 4 {
 			t.Error("SliceI32 - FAIL: len != 4 and/or cap != 4")
 		}
@@ -566,23 +566,23 @@ func FuzzU40(f *testing.F) {
 		b = b % 1099511627776
 		smallCrate.Reset()
 		var c, d uint64
-		smallCrate.AccessU40(&a, lite.Write)
-		smallCrate.AccessU40(&b, lite.Write)
-		smallCrate.AccessU40(&c, lite.Peek)
+		smallCrate.UseU40(&a, lite.Write)
+		smallCrate.UseU40(&b, lite.Write)
+		smallCrate.UseU40(&c, lite.Peek)
 		if c != a {
 			t.Errorf("PeekU40 - FAIL: %d != %d", c, a)
 		}
 		if smallCrate.ReadIndex() != 0 {
 			t.Error("PeekU40 - FAIL: index was increased")
 		}
-		smallCrate.AccessU40(nil, lite.Discard)
+		smallCrate.UseU40(nil, lite.Discard)
 		if smallCrate.ReadIndex() != 5 {
 			t.Error("DiscardU40 - FAIL: index != 5")
 		}
 		if smallCrate.WriteIndex() != 10 {
 			t.Error("WriteU40 - FAIL: index != 10")
 		}
-		slice := smallCrate.AccessU40(&b, lite.Slice)
+		slice := smallCrate.UseU40(&b, lite.Slice)
 		if len(slice) != 5 || cap(slice) != 5 {
 			t.Error("SliceU40 - FAIL: len != 5 and/or cap != 5")
 		}
@@ -610,23 +610,23 @@ func FuzzI40(f *testing.F) {
 		}
 		smallCrate.Reset()
 		var c, d int64
-		smallCrate.AccessI40(&a, lite.Write)
-		smallCrate.AccessI40(&b, lite.Write)
-		smallCrate.AccessI40(&c, lite.Peek)
+		smallCrate.UseI40(&a, lite.Write)
+		smallCrate.UseI40(&b, lite.Write)
+		smallCrate.UseI40(&c, lite.Peek)
 		if c != a {
 			t.Errorf("PeekI40 - FAIL: %d != %d", c, a)
 		}
 		if smallCrate.ReadIndex() != 0 {
 			t.Error("PeekI40 - FAIL: index was increased")
 		}
-		smallCrate.AccessI40(nil, lite.Discard)
+		smallCrate.UseI40(nil, lite.Discard)
 		if smallCrate.ReadIndex() != 5 {
 			t.Error("DiscardI40 - FAIL: index != 5")
 		}
 		if smallCrate.WriteIndex() != 10 {
 			t.Error("WriteI40 - FAIL: index != 10")
 		}
-		slice := smallCrate.AccessI40(&b, lite.Slice)
+		slice := smallCrate.UseI40(&b, lite.Slice)
 		if len(slice) != 5 || cap(slice) != 5 {
 			t.Error("SliceI40 - FAIL: len != 5 and/or cap != 5")
 		}
@@ -650,23 +650,23 @@ func FuzzU48(f *testing.F) {
 		b = b % 281474976710656
 		smallCrate.Reset()
 		var c, d uint64
-		smallCrate.AccessU48(&a, lite.Write)
-		smallCrate.AccessU48(&b, lite.Write)
-		smallCrate.AccessU48(&c, lite.Peek)
+		smallCrate.UseU48(&a, lite.Write)
+		smallCrate.UseU48(&b, lite.Write)
+		smallCrate.UseU48(&c, lite.Peek)
 		if c != a {
 			t.Errorf("PeekU48 - FAIL: %d != %d", c, a)
 		}
 		if smallCrate.ReadIndex() != 0 {
 			t.Error("PeekU48 - FAIL: index was increased")
 		}
-		smallCrate.AccessU48(nil, lite.Discard)
+		smallCrate.UseU48(nil, lite.Discard)
 		if smallCrate.ReadIndex() != 6 {
 			t.Error("DiscardU48 - FAIL: index != 6")
 		}
 		if smallCrate.WriteIndex() != 12 {
 			t.Error("WriteU48 - FAIL: index != 12")
 		}
-		slice := smallCrate.AccessU48(&b, lite.Slice)
+		slice := smallCrate.UseU48(&b, lite.Slice)
 		if len(slice) != 6 || cap(slice) != 6 {
 			t.Error("SliceU48 - FAIL: len != 6 and/or cap != 6")
 		}
@@ -694,23 +694,23 @@ func FuzzI48(f *testing.F) {
 		}
 		smallCrate.Reset()
 		var c, d int64
-		smallCrate.AccessI48(&a, lite.Write)
-		smallCrate.AccessI48(&b, lite.Write)
-		smallCrate.AccessI48(&c, lite.Peek)
+		smallCrate.UseI48(&a, lite.Write)
+		smallCrate.UseI48(&b, lite.Write)
+		smallCrate.UseI48(&c, lite.Peek)
 		if c != a {
 			t.Errorf("PeekI48 - FAIL: %d != %d", c, a)
 		}
 		if smallCrate.ReadIndex() != 0 {
 			t.Error("PeekI48 - FAIL: index was increased")
 		}
-		smallCrate.AccessI48(nil, lite.Discard)
+		smallCrate.UseI48(nil, lite.Discard)
 		if smallCrate.ReadIndex() != 6 {
 			t.Error("DiscardI48 - FAIL: index != 6")
 		}
 		if smallCrate.WriteIndex() != 12 {
 			t.Error("WriteI48 - FAIL: index != 12")
 		}
-		slice := smallCrate.AccessI48(&b, lite.Slice)
+		slice := smallCrate.UseI48(&b, lite.Slice)
 		if len(slice) != 6 || cap(slice) != 6 {
 			t.Error("SliceI48 - FAIL: len != 6 and/or cap != 6")
 		}
@@ -734,23 +734,23 @@ func FuzzU56(f *testing.F) {
 		b = b % 72057594037927936
 		smallCrate.Reset()
 		var c, d uint64
-		smallCrate.AccessU56(&a, lite.Write)
-		smallCrate.AccessU56(&b, lite.Write)
-		smallCrate.AccessU56(&c, lite.Peek)
+		smallCrate.UseU56(&a, lite.Write)
+		smallCrate.UseU56(&b, lite.Write)
+		smallCrate.UseU56(&c, lite.Peek)
 		if c != a {
 			t.Errorf("PeekU56 - FAIL: %d != %d", c, a)
 		}
 		if smallCrate.ReadIndex() != 0 {
 			t.Error("PeekU56 - FAIL: index was increased")
 		}
-		smallCrate.AccessU56(nil, lite.Discard)
+		smallCrate.UseU56(nil, lite.Discard)
 		if smallCrate.ReadIndex() != 7 {
 			t.Error("DiscardU56 - FAIL: index != 7")
 		}
 		if smallCrate.WriteIndex() != 14 {
 			t.Error("WriteU56 - FAIL: index != 14")
 		}
-		slice := smallCrate.AccessU56(&b, lite.Slice)
+		slice := smallCrate.UseU56(&b, lite.Slice)
 		if len(slice) != 7 || cap(slice) != 7 {
 			t.Error("SliceU56 - FAIL: len != 7 and/or cap != 7")
 		}
@@ -778,23 +778,23 @@ func FuzzI56(f *testing.F) {
 		}
 		smallCrate.Reset()
 		var c, d int64
-		smallCrate.AccessI56(&a, lite.Write)
-		smallCrate.AccessI56(&b, lite.Write)
-		smallCrate.AccessI56(&c, lite.Peek)
+		smallCrate.UseI56(&a, lite.Write)
+		smallCrate.UseI56(&b, lite.Write)
+		smallCrate.UseI56(&c, lite.Peek)
 		if c != a {
 			t.Errorf("PeekI56 - FAIL: %d != %d", c, a)
 		}
 		if smallCrate.ReadIndex() != 0 {
 			t.Error("PeekI56 - FAIL: index was increased")
 		}
-		smallCrate.AccessI56(nil, lite.Discard)
+		smallCrate.UseI56(nil, lite.Discard)
 		if smallCrate.ReadIndex() != 7 {
 			t.Error("DiscardI56 - FAIL: index != 7")
 		}
 		if smallCrate.WriteIndex() != 14 {
 			t.Error("WriteI56 - FAIL: index != 14")
 		}
-		slice := smallCrate.AccessI56(&b, lite.Slice)
+		slice := smallCrate.UseI56(&b, lite.Slice)
 		if len(slice) != 7 || cap(slice) != 7 {
 			t.Error("SliceI56 - FAIL: len != 7 and/or cap != 7")
 		}
@@ -816,23 +816,23 @@ func FuzzU64(f *testing.F) {
 	f.Fuzz(func(t *testing.T, a uint64, b uint64) {
 		smallCrate.Reset()
 		var c, d uint64
-		smallCrate.AccessU64(&a, lite.Write)
-		smallCrate.AccessU64(&b, lite.Write)
-		smallCrate.AccessU64(&c, lite.Peek)
+		smallCrate.UseU64(&a, lite.Write)
+		smallCrate.UseU64(&b, lite.Write)
+		smallCrate.UseU64(&c, lite.Peek)
 		if c != a {
 			t.Errorf("PeekU64 - FAIL: %d != %d", c, a)
 		}
 		if smallCrate.ReadIndex() != 0 {
 			t.Error("PeekU64 - FAIL: index was increased")
 		}
-		smallCrate.AccessU64(nil, lite.Discard)
+		smallCrate.UseU64(nil, lite.Discard)
 		if smallCrate.ReadIndex() != 8 {
 			t.Error("DiscardU64 - FAIL: index != 8")
 		}
 		if smallCrate.WriteIndex() != 16 {
 			t.Error("WriteU64 - FAIL: index != 16")
 		}
-		slice := smallCrate.AccessU64(&b, lite.Slice)
+		slice := smallCrate.UseU64(&b, lite.Slice)
 		if len(slice) != 8 || cap(slice) != 8 {
 			t.Error("SliceU64 - FAIL: len != 8 and/or cap != 8")
 		}
@@ -854,23 +854,23 @@ func FuzzI64(f *testing.F) {
 	f.Fuzz(func(t *testing.T, a int64, b int64) {
 		smallCrate.Reset()
 		var c, d int64
-		smallCrate.AccessI64(&a, lite.Write)
-		smallCrate.AccessI64(&b, lite.Write)
-		smallCrate.AccessI64(&c, lite.Peek)
+		smallCrate.UseI64(&a, lite.Write)
+		smallCrate.UseI64(&b, lite.Write)
+		smallCrate.UseI64(&c, lite.Peek)
 		if c != a {
 			t.Errorf("PeekI64 - FAIL: %d != %d", c, a)
 		}
 		if smallCrate.ReadIndex() != 0 {
 			t.Error("PeekI64 - FAIL: index was increased")
 		}
-		smallCrate.AccessI64(nil, lite.Discard)
+		smallCrate.UseI64(nil, lite.Discard)
 		if smallCrate.ReadIndex() != 8 {
 			t.Error("DiscardI64 - FAIL: index != 8")
 		}
 		if smallCrate.WriteIndex() != 16 {
 			t.Error("WriteI64 - FAIL: index != 16")
 		}
-		slice := smallCrate.AccessI64(&b, lite.Slice)
+		slice := smallCrate.UseI64(&b, lite.Slice)
 		if len(slice) != 8 || cap(slice) != 8 {
 			t.Error("SliceI64 - FAIL: len != 8 and/or cap != 8")
 		}
@@ -892,23 +892,23 @@ func FuzzInt(f *testing.F) {
 	f.Fuzz(func(t *testing.T, a int, b int) {
 		smallCrate.Reset()
 		var c, d int
-		smallCrate.AccessInt(&a, lite.Write)
-		smallCrate.AccessInt(&b, lite.Write)
-		smallCrate.AccessInt(&c, lite.Peek)
+		smallCrate.UseInt(&a, lite.Write)
+		smallCrate.UseInt(&b, lite.Write)
+		smallCrate.UseInt(&c, lite.Peek)
 		if c != a {
 			t.Errorf("PeekInt - FAIL: %d != %d", c, a)
 		}
 		if smallCrate.ReadIndex() != 0 {
 			t.Error("PeekInt - FAIL: index was increased")
 		}
-		smallCrate.AccessInt(nil, lite.Discard)
+		smallCrate.UseInt(nil, lite.Discard)
 		if smallCrate.ReadIndex() != 8 {
 			t.Error("DiscardInt - FAIL: index != 8")
 		}
 		if smallCrate.WriteIndex() != 16 {
 			t.Error("WriteInt - FAIL: index != 16")
 		}
-		slice := smallCrate.AccessInt(&b, lite.Slice)
+		slice := smallCrate.UseInt(&b, lite.Slice)
 		if len(slice) != 8 || cap(slice) != 8 {
 			t.Error("SliceInt - FAIL: len != 8 and/or cap != 8")
 		}
@@ -930,23 +930,23 @@ func FuzzUint(f *testing.F) {
 	f.Fuzz(func(t *testing.T, a uint, b uint) {
 		smallCrate.Reset()
 		var c, d uint
-		smallCrate.AccessUint(&a, lite.Write)
-		smallCrate.AccessUint(&b, lite.Write)
-		smallCrate.AccessUint(&c, lite.Peek)
+		smallCrate.UseUint(&a, lite.Write)
+		smallCrate.UseUint(&b, lite.Write)
+		smallCrate.UseUint(&c, lite.Peek)
 		if c != a {
 			t.Errorf("PeekUint - FAIL: %d != %d", c, a)
 		}
 		if smallCrate.ReadIndex() != 0 {
 			t.Error("PeekUint - FAIL: index was increased")
 		}
-		smallCrate.AccessUint(nil, lite.Discard)
+		smallCrate.UseUint(nil, lite.Discard)
 		if smallCrate.ReadIndex() != 8 {
 			t.Error("DiscardUint - FAIL: index != 8")
 		}
 		if smallCrate.WriteIndex() != 16 {
 			t.Error("WriteUint - FAIL: index != 16")
 		}
-		slice := smallCrate.AccessUint(&b, lite.Slice)
+		slice := smallCrate.UseUint(&b, lite.Slice)
 		if len(slice) != 8 || cap(slice) != 8 {
 			t.Error("SliceUint - FAIL: len != 8 and/or cap != 8")
 		}
@@ -969,23 +969,23 @@ func FuzzUINTPtr(f *testing.F) {
 		smallCrate.Reset()
 		var a, b uintptr = uintptr(aa), uintptr(bb)
 		var c, d uintptr
-		smallCrate.AccessUintPtr(&a, lite.Write)
-		smallCrate.AccessUintPtr(&b, lite.Write)
-		smallCrate.AccessUintPtr(&c, lite.Peek)
+		smallCrate.UseUintPtr(&a, lite.Write)
+		smallCrate.UseUintPtr(&b, lite.Write)
+		smallCrate.UseUintPtr(&c, lite.Peek)
 		if c != a {
 			t.Errorf("PeekUintPtr - FAIL: %d != %d", c, a)
 		}
 		if smallCrate.ReadIndex() != 0 {
 			t.Error("PeekUintPtr - FAIL: index was increased")
 		}
-		smallCrate.AccessUintPtr(nil, lite.Discard)
+		smallCrate.UseUintPtr(nil, lite.Discard)
 		if smallCrate.ReadIndex() != 8 {
 			t.Error("DiscardUintPtr - FAIL: index != 8")
 		}
 		if smallCrate.WriteIndex() != 16 {
 			t.Error("WriteUintPtr - FAIL: index != 16")
 		}
-		slice := smallCrate.AccessUintPtr(&b, lite.Slice)
+		slice := smallCrate.UseUintPtr(&b, lite.Slice)
 		if len(slice) != 8 || cap(slice) != 8 {
 			t.Error("SliceUintPtr - FAIL: len != 8 and/or cap != 8")
 		}
@@ -1007,23 +1007,23 @@ func FuzzF32(f *testing.F) {
 	f.Fuzz(func(t *testing.T, a float32, b float32) {
 		smallCrate.Reset()
 		var c, d float32
-		smallCrate.AccessF32(&a, lite.Write)
-		smallCrate.AccessF32(&b, lite.Write)
-		smallCrate.AccessF32(&c, lite.Peek)
+		smallCrate.UseF32(&a, lite.Write)
+		smallCrate.UseF32(&b, lite.Write)
+		smallCrate.UseF32(&c, lite.Peek)
 		if c != a {
 			t.Errorf("PeekF32 - FAIL: %f != %f", c, a)
 		}
 		if smallCrate.ReadIndex() != 0 {
 			t.Error("PeekF32 - FAIL: index was increased")
 		}
-		smallCrate.AccessF32(nil, lite.Discard)
+		smallCrate.UseF32(nil, lite.Discard)
 		if smallCrate.ReadIndex() != 4 {
 			t.Error("DiscardF32 - FAIL: index != 4")
 		}
 		if smallCrate.WriteIndex() != 8 {
 			t.Error("WriteF32 - FAIL: index != 8")
 		}
-		slice := smallCrate.AccessF32(&b, lite.Slice)
+		slice := smallCrate.UseF32(&b, lite.Slice)
 		if len(slice) != 4 || cap(slice) != 4 {
 			t.Error("SliceF32 - FAIL: len != 4 and/or cap != 4")
 		}
@@ -1045,23 +1045,23 @@ func FuzzF64(f *testing.F) {
 	f.Fuzz(func(t *testing.T, a float64, b float64) {
 		smallCrate.Reset()
 		var c, d float64
-		smallCrate.AccessF64(&a, lite.Write)
-		smallCrate.AccessF64(&b, lite.Write)
-		smallCrate.AccessF64(&c, lite.Peek)
+		smallCrate.UseF64(&a, lite.Write)
+		smallCrate.UseF64(&b, lite.Write)
+		smallCrate.UseF64(&c, lite.Peek)
 		if c != a {
 			t.Errorf("PeekF64 - FAIL: %f != %f", c, a)
 		}
 		if smallCrate.ReadIndex() != 0 {
 			t.Error("PeekF64 - FAIL: index was increased")
 		}
-		smallCrate.AccessF64(nil, lite.Discard)
+		smallCrate.UseF64(nil, lite.Discard)
 		if smallCrate.ReadIndex() != 8 {
 			t.Error("DiscardF64 - FAIL: index != 8")
 		}
 		if smallCrate.WriteIndex() != 16 {
 			t.Error("WriteF64 - FAIL: index != 16")
 		}
-		slice := smallCrate.AccessF64(&b, lite.Slice)
+		slice := smallCrate.UseF64(&b, lite.Slice)
 		if len(slice) != 8 || cap(slice) != 8 {
 			t.Error("SliceF64 - FAIL: len != 8 and/or cap != 8")
 		}
@@ -1084,23 +1084,23 @@ func FuzzC64(f *testing.F) {
 		smallCrate.Reset()
 		a, b := complex(ar, ai), complex(br, bi)
 		var c, d complex64
-		smallCrate.AccessC64(&a, lite.Write)
-		smallCrate.AccessC64(&b, lite.Write)
-		smallCrate.AccessC64(&c, lite.Peek)
+		smallCrate.UseC64(&a, lite.Write)
+		smallCrate.UseC64(&b, lite.Write)
+		smallCrate.UseC64(&c, lite.Peek)
 		if c != a {
 			t.Errorf("PeekC64 - FAIL: %f != %f", c, a)
 		}
 		if smallCrate.ReadIndex() != 0 {
 			t.Error("PeekC64 - FAIL: index was increased")
 		}
-		smallCrate.AccessC64(nil, lite.Discard)
+		smallCrate.UseC64(nil, lite.Discard)
 		if smallCrate.ReadIndex() != 8 {
 			t.Error("DiscardC64 - FAIL: index != 8")
 		}
 		if smallCrate.WriteIndex() != 16 {
 			t.Error("WriteC64 - FAIL: index != 16")
 		}
-		slice := smallCrate.AccessC64(&b, lite.Slice)
+		slice := smallCrate.UseC64(&b, lite.Slice)
 		if len(slice) != 8 || cap(slice) != 8 {
 			t.Error("SliceC64 - FAIL: len != 8 and/or cap != 8")
 		}
@@ -1123,23 +1123,23 @@ func FuzzC128(f *testing.F) {
 		smallCrate.Reset()
 		a, b := complex(ar, ai), complex(br, bi)
 		var c, d complex128
-		smallCrate.AccessC128(&a, lite.Write)
-		smallCrate.AccessC128(&b, lite.Write)
-		smallCrate.AccessC128(&c, lite.Peek)
+		smallCrate.UseC128(&a, lite.Write)
+		smallCrate.UseC128(&b, lite.Write)
+		smallCrate.UseC128(&c, lite.Peek)
 		if c != a {
 			t.Errorf("PeekC128 - FAIL: %f != %f", c, a)
 		}
 		if smallCrate.ReadIndex() != 0 {
 			t.Error("PeekC128 - FAIL: index was increased")
 		}
-		smallCrate.AccessC128(nil, lite.Discard)
+		smallCrate.UseC128(nil, lite.Discard)
 		if smallCrate.ReadIndex() != 16 {
 			t.Error("DiscardC128 - FAIL: index != 16")
 		}
 		if smallCrate.WriteIndex() != 32 {
 			t.Error("WriteC128 - FAIL: index != 32")
 		}
-		slice := smallCrate.AccessC128(&b, lite.Slice)
+		slice := smallCrate.UseC128(&b, lite.Slice)
 		if len(slice) != 16 || cap(slice) != 16 {
 			t.Error("SliceC128 - FAIL: len != 16 and/or cap != 16")
 		}
@@ -1195,23 +1195,23 @@ func FuzzUVarint(f *testing.F) {
 		var c, d, cBytes, dBytes uint64
 		bytesA, bytesB := findUVarintBytesFromValue(a), findUVarintBytesFromValue(b)
 		bytesTotal := bytesA + bytesB
-		smallCrate.AccessUVarint(&a, lite.Write)
-		smallCrate.AccessUVarint(&b, lite.Write)
-		smallCrate.AccessUVarint(&c, lite.Peek)
+		smallCrate.UseUVarint(&a, lite.Write)
+		smallCrate.UseUVarint(&b, lite.Write)
+		smallCrate.UseUVarint(&c, lite.Peek)
 		if c != a {
 			t.Errorf("PeekUVarint - FAIL: %d != %d", c, a)
 		}
 		if smallCrate.ReadIndex() != 0 {
 			t.Error("PeekUVarint - FAIL: index was increased")
 		}
-		smallCrate.AccessUVarint(nil, lite.Discard)
+		smallCrate.UseUVarint(nil, lite.Discard)
 		if smallCrate.ReadIndex() != bytesA {
 			t.Errorf("DiscardUVarint - FAIL: index %d != %d", smallCrate.ReadIndex(), bytesA)
 		}
 		if smallCrate.WriteIndex() != bytesTotal {
 			t.Errorf("WriteUVarint - FAIL: index %d != %d", smallCrate.WriteIndex(), bytesTotal)
 		}
-		_, slice := smallCrate.AccessUVarint(&b, lite.Slice)
+		_, slice := smallCrate.UseUVarint(&b, lite.Slice)
 		if uint64(len(slice)) != bytesB || uint64(cap(slice)) != bytesB {
 			t.Error("SliceUVarint - FAIL: len(", len(slice), ") != ", bytesB, " and/or cap(", cap(slice), ") != ", bytesB)
 		}
@@ -1239,23 +1239,23 @@ func FuzzVarint(f *testing.F) {
 		var cBytes, dBytes uint64
 		bytesA, bytesB := findVarintBytesFromValue(a), findVarintBytesFromValue(b)
 		bytesTotal := bytesA + bytesB
-		smallCrate.AccessVarint(&a, lite.Write)
-		smallCrate.AccessVarint(&b, lite.Write)
-		smallCrate.AccessVarint(&c, lite.Peek)
+		smallCrate.UseVarint(&a, lite.Write)
+		smallCrate.UseVarint(&b, lite.Write)
+		smallCrate.UseVarint(&c, lite.Peek)
 		if c != a {
 			t.Errorf("PeekVarint - FAIL: %d != %d", c, a)
 		}
 		if smallCrate.ReadIndex() != 0 {
 			t.Error("PeekVarint - FAIL: index was increased")
 		}
-		smallCrate.AccessVarint(nil, lite.Discard)
+		smallCrate.UseVarint(nil, lite.Discard)
 		if smallCrate.ReadIndex() != bytesA {
 			t.Error("DiscardVarint - FAIL: index != ", bytesA)
 		}
 		if smallCrate.WriteIndex() != bytesTotal {
 			t.Error("WriteVarint - FAIL: index != ", bytesTotal)
 		}
-		_, slice := smallCrate.AccessVarint(&b, lite.Slice)
+		_, slice := smallCrate.UseVarint(&b, lite.Slice)
 		if uint64(len(slice)) != bytesB || uint64(cap(slice)) != bytesB {
 			t.Error("SliceVarint - FAIL: len != ", bytesB, " and/or cap != ", bytesB)
 		}
@@ -1293,24 +1293,24 @@ func FuzzLengthOrNil(f *testing.F) {
 		}
 		bytesA, bytesB, bytesN := findUVarintBytesFromValue(a+1), findUVarintBytesFromValue(b+1), findUVarintBytesFromValue(n)
 		bytesTotal := bytesA + bytesB + bytesN
-		smallCrate.AccessLengthOrNil(&a, aNil, lite.Write)
-		smallCrate.AccessLengthOrNil(&b, bNil, lite.Write)
-		smallCrate.AccessLengthOrNil(&n, nNil, lite.Write)
-		smallCrate.AccessLengthOrNil(&c, cNil, lite.Peek)
+		smallCrate.UseLengthOrNil(&a, aNil, lite.Write)
+		smallCrate.UseLengthOrNil(&b, bNil, lite.Write)
+		smallCrate.UseLengthOrNil(&n, nNil, lite.Write)
+		smallCrate.UseLengthOrNil(&c, cNil, lite.Peek)
 		if c != a {
 			t.Errorf("PeekLengthOrNil - FAIL: %d != %d", c, a)
 		}
 		if smallCrate.ReadIndex() != 0 {
 			t.Error("PeekLengthOrNil - FAIL: index was increased")
 		}
-		smallCrate.AccessLengthOrNil(nil, false, lite.Discard)
+		smallCrate.UseLengthOrNil(nil, false, lite.Discard)
 		if smallCrate.ReadIndex() != bytesA {
 			t.Error("DiscardLengthOrNil - FAIL: index != ", bytesA)
 		}
 		if smallCrate.WriteIndex() != bytesTotal {
 			t.Error("WriteLengthOrNil - FAIL: index != ", bytesTotal)
 		}
-		_, _, slice := smallCrate.AccessLengthOrNil(&b, false, lite.Slice)
+		_, _, slice := smallCrate.UseLengthOrNil(&b, false, lite.Slice)
 		if uint64(len(slice)) != bytesB || uint64(cap(slice)) != bytesB {
 			t.Error("SliceLengthOrNil - FAIL: len != ", bytesB, " and/or cap != ", bytesB)
 		}
@@ -1339,16 +1339,16 @@ func FuzzString(f *testing.F) {
 	f.Fuzz(func(t *testing.T, a string, b string) {
 		largeCrate.Reset()
 		var c, d string
-		largeCrate.AccessStringWithCounter(&a, lite.Write)
-		largeCrate.AccessStringWithCounter(&b, lite.Write)
-		largeCrate.AccessStringWithCounter(&c, lite.Peek)
+		largeCrate.UseStringWithCounter(&a, lite.Write)
+		largeCrate.UseStringWithCounter(&b, lite.Write)
+		largeCrate.UseStringWithCounter(&c, lite.Peek)
 		if c != a {
 			t.Errorf("PeekString - FAIL: %s != %s", c, a)
 		}
 		if largeCrate.ReadIndex() != 0 {
 			t.Error("PeekString - FAIL: index was increased")
 		}
-		slice := largeCrate.AccessStringWithCounter(&a, lite.Slice)
+		slice := largeCrate.UseStringWithCounter(&a, lite.Slice)
 		if len(slice) != len(a) || cap(slice) != len(a) {
 			t.Errorf("SliceStringWithCounter - FAIL: len(%d) != %d and/or cap(%d) != %d", len(slice), len(a), cap(slice), len(a))
 		}
@@ -1367,9 +1367,9 @@ func FuzzBytes(f *testing.F) {
 	f.Fuzz(func(t *testing.T, a []byte, b []byte) {
 		largeCrate.Reset()
 		var c, d []byte
-		largeCrate.AccessBytesWithCounter(&a, lite.Write)
-		largeCrate.AccessBytesWithCounter(&b, lite.Write)
-		largeCrate.AccessBytesWithCounter(&c, lite.Peek)
+		largeCrate.UseBytesWithCounter(&a, lite.Write)
+		largeCrate.UseBytesWithCounter(&b, lite.Write)
+		largeCrate.UseBytesWithCounter(&c, lite.Peek)
 		for i := 0; i < len(c) && i < len(a); i += 1 {
 			if len(c) != len(a) || c[i] != a[i] {
 				t.Errorf("PeekBytes - FAIL: \n%v != \n%v", c, a)
@@ -1379,7 +1379,7 @@ func FuzzBytes(f *testing.F) {
 		if largeCrate.ReadIndex() != 0 {
 			t.Error("PeekBytes - FAIL: index was increased")
 		}
-		slice := largeCrate.AccessBytesWithCounter(&a, lite.Slice)
+		slice := largeCrate.UseBytesWithCounter(&a, lite.Slice)
 		if len(slice) != len(a) || cap(slice) != len(a) {
 			t.Errorf("SliceBytesWithCounter - FAIL: len(%d) != %d and/or cap(%d) != %d", len(slice), len(a), cap(slice), len(a))
 		}
@@ -1401,7 +1401,7 @@ func FuzzBytes(f *testing.F) {
 	})
 }
 
-func FuzzSelfAccessor(f *testing.F) {
+func FuzzSelfSerializer(f *testing.F) {
 	f.Add(
 		uint8(38), "Derek", int64(-2), "Hanahanana", float64(3.1415), float64(1.23456), "Brent", float64(5.55555), float64(9.87654), uint(10), uint32(999),
 		uint8(12), "Chris", int64(-3), "Dad", float64(4.1415), float64(5.23456), "Mom", float64(6.55555), float64(7.87654), uint(9), uint32(888),
@@ -1446,8 +1446,8 @@ func FuzzSelfAccessor(f *testing.F) {
 		personB := person{}
 		personC := person{}
 		// read/write
-		largeCrate.AccessSelfAccessor(&personA, lite.Write)
-		largeCrate.AccessSelfAccessor(&personB, lite.Peek)
+		largeCrate.UseSelfSerializer(&personA, lite.Write)
+		largeCrate.UseSelfSerializer(&personB, lite.Peek)
 		if largeCrate.ReadIndex() != 0 {
 			t.Error("PeekSelfSelector - FAIL: index was increased")
 		}
@@ -1458,7 +1458,7 @@ func FuzzSelfAccessor(f *testing.F) {
 			t.Logf("Verbose Strings Equal? %v", outputA == outputB)
 		}
 		recvCrate := lite.OpenCrate(largeCrate.Data(), lite.FlagManualExact)
-		recvCrate.AccessSelfAccessor(&personC, lite.Read)
+		recvCrate.UseSelfSerializer(&personC, lite.Read)
 		if !reflect.DeepEqual(personA, personC) {
 			outputA := fmt.Sprintf("%#v", personA)
 			outputC := fmt.Sprintf("%#v", personC)

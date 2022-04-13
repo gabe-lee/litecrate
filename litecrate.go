@@ -14,30 +14,31 @@ const (
 	FlagManualDouble uint8 = FlagManualGrow | FlagGrowDouble // Only grow buffer by double+n when Grow() is called explicitly, panic if a write would exceed capacity
 	FlagManualExact  uint8 = FlagManualGrow | FlagGrowExact  // Only grow buffer to exact length when Grow() is called explicitly, panic if a write would exceed capacity
 	FlagDefault      uint8 = FlagAutoDouble                  // Automatically grow buffer by double+n when a write would exceed capacity
+	FlagStatic       uint8 = FlagManualExact                 // Only grow buffer to exact length when Grow() is called explicitly, panic if a write would exceed capacity
 )
 
-// Determines how the Access____() functions handle the variables passed to them
-type AccessMode uint8
+// Determines how the Use____() functions handle the variables passed to them
+type UseMode uint8
 
 const (
-	Write   AccessMode = 0 // Write value to Crate
-	Read    AccessMode = 1 // Read value from crate
-	Peek    AccessMode = 2 // Read value from Crate without advancing read index
-	Discard AccessMode = 3 // Advance read index without using value
-	Slice   AccessMode = 4 // get the byte slice the value occupies in crate without advancing read index
+	Write   UseMode = 0 // Write value to Crate
+	Read    UseMode = 1 // Read value from crate
+	Peek    UseMode = 2 // Read value from Crate without advancing read index
+	Discard UseMode = 3 // Advance read index without using value
+	Slice   UseMode = 4 // get the byte slice the value occupies in crate without advancing read index
 )
 
-// Implementers of SelfAccessor indicate that if given a Crate and an AccessMode,
+// Implementers of SelfSerializer indicate that if given a Crate and a UseMode,
 // they know how to call the correct methods to read/write themselves to/from it.
 //
 // It is generally preferable to call
-//	crate.AccessSelfAccessor(selfAccessor, mode)
+//	crate.UseSelfSerializer(selfSerializer, mode)
 // rather than
-//	selfAccessor.AccessSelf(crate, mode)
+//	SelfSerializer.UseSelf(crate, mode)
 // as the former will correctly handle 'Peek' and 'Slice' modes without additional work inside
-// user's definition of AccessSelf()
-type SelfAccessor interface {
-	AccessSelf(crate *Crate, mode AccessMode)
+// user's definition of UseSelf()
+type SelfSerializer interface {
+	UseSelf(crate *Crate, mode UseMode)
 }
 
 // A Crate is a data buffer with a separate read and write index
@@ -50,11 +51,11 @@ type Crate struct {
 }
 
 // Just in case you want to pack Crates inside other Crates...
-func (c *Crate) AccessSelf(crate *Crate, mode AccessMode) {
-	c.AccessU64(&c.write, mode)
-	c.AccessU64(&c.read, mode)
-	c.AccessU8(&c.flags, mode)
-	c.AccessBytesWithCounter(&c.data, mode)
+func (c *Crate) UseSelf(crate *Crate, mode UseMode) {
+	c.UseU64(&c.write, mode)
+	c.UseU64(&c.read, mode)
+	c.UseU8(&c.flags, mode)
+	c.UseBytesWithCounter(&c.data, mode)
 }
 
 // Create new Crate with specified initial size and option flags
@@ -287,6 +288,32 @@ func (c *Crate) DiscardN(n uint64) {
 }
 
 /**************
+	EMPTY
+***************/
+
+type Empty = struct{}
+
+// No-Op placeholder for 'empty' type struct{}
+func (c *Crate) DiscardEmpty() {}
+
+// No-Op placeholder for 'empty' type struct{}
+func (c *Crate) SliceEmpty() {}
+
+// No-Op placeholder for 'empty' type struct{}
+func (c *Crate) WriteEmpty() {}
+
+// No-Op placeholder for 'empty' type struct{}
+func (c *Crate) ReadEmpty() {}
+
+// No-Op placeholder for 'empty' type struct{}
+func (c *Crate) PeekEmpty() {}
+
+// No-Op placeholder for 'empty' type struct{}
+func (c *Crate) UseEmpty(val *Empty, mode UseMode) (sliceModeData []byte) {
+	return []byte{}
+}
+
+/**************
 	BOOL
 ***************/
 
@@ -326,7 +353,7 @@ func (c *Crate) PeekBool() (val bool) {
 // Write = 'write val into crate', Read = 'read from crate into val',
 // Peek = 'read from crate into val without advancing index'
 // Slice = 'Return the slice the next unread val occupies without altering val'
-func (c *Crate) AccessBool(val *bool, mode AccessMode) (sliceModeData []byte) {
+func (c *Crate) UseBool(val *bool, mode UseMode) (sliceModeData []byte) {
 	switch mode {
 	case Write:
 		c.WriteBool(*val)
@@ -339,7 +366,7 @@ func (c *Crate) AccessBool(val *bool, mode AccessMode) (sliceModeData []byte) {
 	case Slice:
 		sliceModeData = c.SliceBool()
 	default:
-		panic("LiteCrate: Invalid mode passed to AccessBool()")
+		panic("LiteCrate: Invalid mode passed to UseBool()")
 	}
 	return sliceModeData
 }
@@ -384,7 +411,7 @@ func (c *Crate) PeekU8() (val uint8) {
 // Write = 'write val into crate', Read = 'read from crate into val',
 // Peek = 'read from crate into val without advancing index'
 // Slice = 'Return the slice the next unread val occupies without altering val'
-func (c *Crate) AccessU8(val *uint8, mode AccessMode) (sliceModeData []byte) {
+func (c *Crate) UseU8(val *uint8, mode UseMode) (sliceModeData []byte) {
 	switch mode {
 	case Write:
 		c.WriteU8(*val)
@@ -397,7 +424,7 @@ func (c *Crate) AccessU8(val *uint8, mode AccessMode) (sliceModeData []byte) {
 	case Slice:
 		sliceModeData = c.SliceU8()
 	default:
-		panic("LiteCrate: Invalid mode passed to AccessU8()/AccessByte()")
+		panic("LiteCrate: Invalid mode passed to UseU8()/UseByte()")
 	}
 	return sliceModeData
 }
@@ -432,8 +459,8 @@ func (c *Crate) PeekByte() (val uint8) {
 // Write = 'write val into crate', Read = 'read from crate into val',
 // Peek = 'read from crate into val without advancing index'
 // Slice = 'Return the slice the next unread val occupies without altering val'
-func (c *Crate) AccessByte(val *uint8, mode AccessMode) {
-	c.AccessU8(val, mode)
+func (c *Crate) UseByte(val *uint8, mode UseMode) {
+	c.UseU8(val, mode)
 }
 
 /**************
@@ -476,7 +503,7 @@ func (c *Crate) PeekI8() (val int8) {
 // Write = 'write val into crate', Read = 'read from crate into val',
 // Peek = 'read from crate into val without advancing index'
 // Slice = 'Return the slice the next unread val occupies without altering val'
-func (c *Crate) AccessI8(val *int8, mode AccessMode) (sliceModeData []byte) {
+func (c *Crate) UseI8(val *int8, mode UseMode) (sliceModeData []byte) {
 	switch mode {
 	case Write:
 		c.WriteI8(*val)
@@ -489,7 +516,7 @@ func (c *Crate) AccessI8(val *int8, mode AccessMode) (sliceModeData []byte) {
 	case Slice:
 		sliceModeData = c.SliceI8()
 	default:
-		panic("LiteCrate: Invalid mode passed to AccessI8()")
+		panic("LiteCrate: Invalid mode passed to UseI8()")
 	}
 	return sliceModeData
 }
@@ -537,7 +564,7 @@ func (c *Crate) PeekU16() (val uint16) {
 // Write = 'write val into crate', Read = 'read from crate into val',
 // Peek = 'read from crate into val without advancing index'
 // Slice = 'Return the slice the next unread val occupies without altering val'
-func (c *Crate) AccessU16(val *uint16, mode AccessMode) (sliceModeData []byte) {
+func (c *Crate) UseU16(val *uint16, mode UseMode) (sliceModeData []byte) {
 	switch mode {
 	case Write:
 		c.WriteU16(*val)
@@ -550,7 +577,7 @@ func (c *Crate) AccessU16(val *uint16, mode AccessMode) (sliceModeData []byte) {
 	case Slice:
 		sliceModeData = c.SliceU16()
 	default:
-		panic("LiteCrate: Invalid mode passed to AccessU16()")
+		panic("LiteCrate: Invalid mode passed to UseU16()")
 	}
 	return sliceModeData
 }
@@ -592,7 +619,7 @@ func (c *Crate) PeekI16() (val int16) {
 // Write = 'write val into crate', Read = 'read from crate into val',
 // Peek = 'read from crate into val without advancing index'
 // Slice = 'Return the slice the next unread val occupies without altering val'
-func (c *Crate) AccessI16(val *int16, mode AccessMode) (sliceModeData []byte) {
+func (c *Crate) UseI16(val *int16, mode UseMode) (sliceModeData []byte) {
 	switch mode {
 	case Write:
 		c.WriteI16(*val)
@@ -605,7 +632,7 @@ func (c *Crate) AccessI16(val *int16, mode AccessMode) (sliceModeData []byte) {
 	case Slice:
 		sliceModeData = c.SliceI16()
 	default:
-		panic("LiteCrate: Invalid mode passed to AccessI16()")
+		panic("LiteCrate: Invalid mode passed to UseI16()")
 	}
 	return sliceModeData
 }
@@ -658,7 +685,7 @@ func (c *Crate) PeekU24() (val uint32) {
 // Write = 'write val into crate', Read = 'read from crate into val',
 // Peek = 'read from crate into val without advancing index'
 // Slice = 'Return the slice the next unread val occupies without altering val'
-func (c *Crate) AccessU24(val *uint32, mode AccessMode) (sliceModeData []byte) {
+func (c *Crate) UseU24(val *uint32, mode UseMode) (sliceModeData []byte) {
 	switch mode {
 	case Write:
 		c.WriteU24(*val)
@@ -671,7 +698,7 @@ func (c *Crate) AccessU24(val *uint32, mode AccessMode) (sliceModeData []byte) {
 	case Slice:
 		sliceModeData = c.SliceU24()
 	default:
-		panic("LiteCrate: Invalid mode passed to AccessU24()")
+		panic("LiteCrate: Invalid mode passed to UseU24()")
 	}
 	return sliceModeData
 }
@@ -719,7 +746,7 @@ func (c *Crate) PeekI24() (val int32) {
 // Write = 'write val into crate', Read = 'read from crate into val',
 // Peek = 'read from crate into val without advancing index'
 // Slice = 'Return the slice the next unread val occupies without altering val'
-func (c *Crate) AccessI24(val *int32, mode AccessMode) (sliceModeData []byte) {
+func (c *Crate) UseI24(val *int32, mode UseMode) (sliceModeData []byte) {
 	switch mode {
 	case Write:
 		c.WriteI24(*val)
@@ -732,7 +759,7 @@ func (c *Crate) AccessI24(val *int32, mode AccessMode) (sliceModeData []byte) {
 	case Slice:
 		sliceModeData = c.SliceI24()
 	default:
-		panic("LiteCrate: Invalid mode passed to AccessI24()")
+		panic("LiteCrate: Invalid mode passed to UseI24()")
 	}
 	return sliceModeData
 }
@@ -784,7 +811,7 @@ func (c *Crate) PeekU32() (val uint32) {
 // Write = 'write val into crate', Read = 'read from crate into val',
 // Peek = 'read from crate into val without advancing index'
 // Slice = 'Return the slice the next unread val occupies without altering val'
-func (c *Crate) AccessU32(val *uint32, mode AccessMode) (sliceModeData []byte) {
+func (c *Crate) UseU32(val *uint32, mode UseMode) (sliceModeData []byte) {
 	switch mode {
 	case Write:
 		c.WriteU32(*val)
@@ -797,7 +824,7 @@ func (c *Crate) AccessU32(val *uint32, mode AccessMode) (sliceModeData []byte) {
 	case Slice:
 		sliceModeData = c.SliceU32()
 	default:
-		panic("LiteCrate: Invalid mode passed to AccessU32()")
+		panic("LiteCrate: Invalid mode passed to UseU32()")
 	}
 	return sliceModeData
 }
@@ -839,7 +866,7 @@ func (c *Crate) PeekI32() (val int32) {
 // Write = 'write val into crate', Read = 'read from crate into val',
 // Peek = 'read from crate into val without advancing index'
 // Slice = 'Return the slice the next unread val occupies without altering val'
-func (c *Crate) AccessI32(val *int32, mode AccessMode) (sliceModeData []byte) {
+func (c *Crate) UseI32(val *int32, mode UseMode) (sliceModeData []byte) {
 	switch mode {
 	case Write:
 		c.WriteI32(*val)
@@ -852,7 +879,7 @@ func (c *Crate) AccessI32(val *int32, mode AccessMode) (sliceModeData []byte) {
 	case Slice:
 		sliceModeData = c.SliceI32()
 	default:
-		panic("LiteCrate: Invalid mode passed to AccessI32()/AccessRune()")
+		panic("LiteCrate: Invalid mode passed to UseI32()/UseRune()")
 	}
 	return sliceModeData
 }
@@ -887,8 +914,8 @@ func (c *Crate) PeekRune() (val rune) {
 // Write = 'write val into crate', Read = 'read from crate into val',
 // Peek = 'read from crate into val without advancing index'
 // Slice = 'Return the slice the next unread val occupies without altering val'
-func (c *Crate) AccessRune(val *rune, mode AccessMode) {
-	c.AccessI32(val, mode)
+func (c *Crate) UseRune(val *rune, mode UseMode) {
+	c.UseI32(val, mode)
 }
 
 /**************
@@ -943,7 +970,7 @@ func (c *Crate) PeekU40() (val uint64) {
 // Write = 'write val into crate', Read = 'read from crate into val',
 // Peek = 'read from crate into val without advancing index'
 // Slice = 'Return the slice the next unread val occupies without altering val'
-func (c *Crate) AccessU40(val *uint64, mode AccessMode) (sliceModeData []byte) {
+func (c *Crate) UseU40(val *uint64, mode UseMode) (sliceModeData []byte) {
 	switch mode {
 	case Write:
 		c.WriteU40(*val)
@@ -956,7 +983,7 @@ func (c *Crate) AccessU40(val *uint64, mode AccessMode) (sliceModeData []byte) {
 	case Slice:
 		sliceModeData = c.SliceU40()
 	default:
-		panic("LiteCrate: Invalid mode passed to AccessU40()")
+		panic("LiteCrate: Invalid mode passed to UseU40()")
 	}
 	return sliceModeData
 }
@@ -1004,7 +1031,7 @@ func (c *Crate) PeekI40() (val int64) {
 // Write = 'write val into crate', Read = 'read from crate into val',
 // Peek = 'read from crate into val without advancing index'
 // Slice = 'Return the slice the next unread val occupies without altering val'
-func (c *Crate) AccessI40(val *int64, mode AccessMode) (sliceModeData []byte) {
+func (c *Crate) UseI40(val *int64, mode UseMode) (sliceModeData []byte) {
 	switch mode {
 	case Write:
 		c.WriteI40(*val)
@@ -1017,7 +1044,7 @@ func (c *Crate) AccessI40(val *int64, mode AccessMode) (sliceModeData []byte) {
 	case Slice:
 		sliceModeData = c.SliceI40()
 	default:
-		panic("LiteCrate: Invalid mode passed to AccessI40()")
+		panic("LiteCrate: Invalid mode passed to UseI40()")
 	}
 	return sliceModeData
 }
@@ -1076,7 +1103,7 @@ func (c *Crate) PeekU48() (val uint64) {
 // Write = 'write val into crate', Read = 'read from crate into val',
 // Peek = 'read from crate into val without advancing index'
 // Slice = 'Return the slice the next unread val occupies without altering val'
-func (c *Crate) AccessU48(val *uint64, mode AccessMode) (sliceModeData []byte) {
+func (c *Crate) UseU48(val *uint64, mode UseMode) (sliceModeData []byte) {
 	switch mode {
 	case Write:
 		c.WriteU48(*val)
@@ -1089,7 +1116,7 @@ func (c *Crate) AccessU48(val *uint64, mode AccessMode) (sliceModeData []byte) {
 	case Slice:
 		sliceModeData = c.SliceU48()
 	default:
-		panic("LiteCrate: Invalid mode passed to AccessU48()")
+		panic("LiteCrate: Invalid mode passed to UseU48()")
 	}
 	return sliceModeData
 }
@@ -1137,7 +1164,7 @@ func (c *Crate) PeekI48() (val int64) {
 // Write = 'write val into crate', Read = 'read from crate into val',
 // Peek = 'read from crate into val without advancing index'
 // Slice = 'Return the slice the next unread val occupies without altering val'
-func (c *Crate) AccessI48(val *int64, mode AccessMode) (sliceModeData []byte) {
+func (c *Crate) UseI48(val *int64, mode UseMode) (sliceModeData []byte) {
 	switch mode {
 	case Write:
 		c.WriteI48(*val)
@@ -1150,7 +1177,7 @@ func (c *Crate) AccessI48(val *int64, mode AccessMode) (sliceModeData []byte) {
 	case Slice:
 		sliceModeData = c.SliceI48()
 	default:
-		panic("LiteCrate: Invalid mode passed to AccessI48()")
+		panic("LiteCrate: Invalid mode passed to UseI48()")
 	}
 	return sliceModeData
 }
@@ -1211,7 +1238,7 @@ func (c *Crate) PeekU56() (val uint64) {
 // Write = 'write val into crate', Read = 'read from crate into val',
 // Peek = 'read from crate into val without advancing index'
 // Slice = 'Return the slice the next unread val occupies without altering val'
-func (c *Crate) AccessU56(val *uint64, mode AccessMode) (sliceModeData []byte) {
+func (c *Crate) UseU56(val *uint64, mode UseMode) (sliceModeData []byte) {
 	switch mode {
 	case Write:
 		c.WriteU56(*val)
@@ -1224,7 +1251,7 @@ func (c *Crate) AccessU56(val *uint64, mode AccessMode) (sliceModeData []byte) {
 	case Slice:
 		sliceModeData = c.SliceU56()
 	default:
-		panic("LiteCrate: Invalid mode passed to AccessU56()")
+		panic("LiteCrate: Invalid mode passed to UseU56()")
 	}
 	return sliceModeData
 }
@@ -1272,7 +1299,7 @@ func (c *Crate) PeekI56() (val int64) {
 // Write = 'write val into crate', Read = 'read from crate into val',
 // Peek = 'read from crate into val without advancing index'
 // Slice = 'Return the slice the next unread val occupies without altering val'
-func (c *Crate) AccessI56(val *int64, mode AccessMode) (sliceModeData []byte) {
+func (c *Crate) UseI56(val *int64, mode UseMode) (sliceModeData []byte) {
 	switch mode {
 	case Write:
 		c.WriteI56(*val)
@@ -1285,7 +1312,7 @@ func (c *Crate) AccessI56(val *int64, mode AccessMode) (sliceModeData []byte) {
 	case Slice:
 		sliceModeData = c.SliceI56()
 	default:
-		panic("LiteCrate: Invalid mode passed to AccessI56()")
+		panic("LiteCrate: Invalid mode passed to UseI56()")
 	}
 	return sliceModeData
 }
@@ -1345,7 +1372,7 @@ func (c *Crate) PeekU64() (val uint64) {
 // Write = 'write val into crate', Read = 'read from crate into val',
 // Peek = 'read from crate into val without advancing index'
 // Slice = 'Return the slice the next unread val occupies without altering val'
-func (c *Crate) AccessU64(val *uint64, mode AccessMode) (sliceModeData []byte) {
+func (c *Crate) UseU64(val *uint64, mode UseMode) (sliceModeData []byte) {
 	switch mode {
 	case Write:
 		c.WriteU64(*val)
@@ -1358,7 +1385,7 @@ func (c *Crate) AccessU64(val *uint64, mode AccessMode) (sliceModeData []byte) {
 	case Slice:
 		sliceModeData = c.SliceU64()
 	default:
-		panic("LiteCrate: Invalid mode passed to AccessU64()")
+		panic("LiteCrate: Invalid mode passed to UseU64()")
 	}
 	return sliceModeData
 }
@@ -1401,7 +1428,7 @@ func (c *Crate) PeekI64() (val int64) {
 // Write = 'write val into crate', Read = 'read from crate into val',
 // Peek = 'read from crate into val without advancing index'
 // Slice = 'Return the slice the next unread val occupies without altering val'
-func (c *Crate) AccessI64(val *int64, mode AccessMode) (sliceModeData []byte) {
+func (c *Crate) UseI64(val *int64, mode UseMode) (sliceModeData []byte) {
 	switch mode {
 	case Write:
 		c.WriteI64(*val)
@@ -1414,7 +1441,7 @@ func (c *Crate) AccessI64(val *int64, mode AccessMode) (sliceModeData []byte) {
 	case Slice:
 		sliceModeData = c.SliceI64()
 	default:
-		panic("LiteCrate: Invalid mode passed to AccessI64()")
+		panic("LiteCrate: Invalid mode passed to UseI64()")
 	}
 	return sliceModeData
 }
@@ -1455,7 +1482,7 @@ func (c *Crate) PeekInt() (val int) {
 // Write = 'write val into crate', Read = 'read from crate into val',
 // Peek = 'read from crate into val without advancing index'
 // Slice = 'Return the slice the next unread val occupies without altering val'
-func (c *Crate) AccessInt(val *int, mode AccessMode) (sliceModeData []byte) {
+func (c *Crate) UseInt(val *int, mode UseMode) (sliceModeData []byte) {
 	switch mode {
 	case Write:
 		c.WriteInt(*val)
@@ -1468,7 +1495,7 @@ func (c *Crate) AccessInt(val *int, mode AccessMode) (sliceModeData []byte) {
 	case Slice:
 		sliceModeData = c.SliceInt()
 	default:
-		panic("LiteCrate: Invalid mode passed to AccessInt()")
+		panic("LiteCrate: Invalid mode passed to UseInt()")
 	}
 	return sliceModeData
 }
@@ -1509,7 +1536,7 @@ func (c *Crate) PeekUint() (val uint) {
 // Write = 'write val into crate', Read = 'read from crate into val',
 // Peek = 'read from crate into val without advancing index'
 // Slice = 'Return the slice the next unread val occupies without altering val'
-func (c *Crate) AccessUint(val *uint, mode AccessMode) (sliceModeData []byte) {
+func (c *Crate) UseUint(val *uint, mode UseMode) (sliceModeData []byte) {
 	switch mode {
 	case Write:
 		c.WriteUint(*val)
@@ -1522,7 +1549,7 @@ func (c *Crate) AccessUint(val *uint, mode AccessMode) (sliceModeData []byte) {
 	case Slice:
 		sliceModeData = c.SliceUint()
 	default:
-		panic("LiteCrate: Invalid mode passed to AccessUint()")
+		panic("LiteCrate: Invalid mode passed to UseUint()")
 	}
 	return sliceModeData
 }
@@ -1563,7 +1590,7 @@ func (c *Crate) PeekUintPtr() (val uintptr) {
 // Write = 'write val into crate', Read = 'read from crate into val',
 // Peek = 'read from crate into val without advancing index'
 // Slice = 'Return the slice the next unread val occupies without altering val'
-func (c *Crate) AccessUintPtr(val *uintptr, mode AccessMode) (sliceModeData []byte) {
+func (c *Crate) UseUintPtr(val *uintptr, mode UseMode) (sliceModeData []byte) {
 	switch mode {
 	case Write:
 		c.WriteUintPtr(*val)
@@ -1576,7 +1603,7 @@ func (c *Crate) AccessUintPtr(val *uintptr, mode AccessMode) (sliceModeData []by
 	case Slice:
 		sliceModeData = c.SliceUintPtr()
 	default:
-		panic("LiteCrate: Invalid mode passed to AccessUintPtr()")
+		panic("LiteCrate: Invalid mode passed to UseUintPtr()")
 	}
 	return sliceModeData
 }
@@ -1619,7 +1646,7 @@ func (c *Crate) PeekF32() (val float32) {
 // Write = 'write val into crate', Read = 'read from crate into val',
 // Peek = 'read from crate into val without advancing index'
 // Slice = 'Return the slice the next unread val occupies without altering val'
-func (c *Crate) AccessF32(val *float32, mode AccessMode) (sliceModeData []byte) {
+func (c *Crate) UseF32(val *float32, mode UseMode) (sliceModeData []byte) {
 	switch mode {
 	case Write:
 		c.WriteF32(*val)
@@ -1632,7 +1659,7 @@ func (c *Crate) AccessF32(val *float32, mode AccessMode) (sliceModeData []byte) 
 	case Slice:
 		sliceModeData = c.SliceF32()
 	default:
-		panic("LiteCrate: Invalid mode passed to AccessF32()")
+		panic("LiteCrate: Invalid mode passed to UseF32()")
 	}
 	return sliceModeData
 }
@@ -1675,7 +1702,7 @@ func (c *Crate) PeekF64() (val float64) {
 // Write = 'write val into crate', Read = 'read from crate into val',
 // Peek = 'read from crate into val without advancing index'
 // Slice = 'Return the slice the next unread val occupies without altering val'
-func (c *Crate) AccessF64(val *float64, mode AccessMode) (sliceModeData []byte) {
+func (c *Crate) UseF64(val *float64, mode UseMode) (sliceModeData []byte) {
 	switch mode {
 	case Write:
 		c.WriteF64(*val)
@@ -1688,7 +1715,7 @@ func (c *Crate) AccessF64(val *float64, mode AccessMode) (sliceModeData []byte) 
 	case Slice:
 		sliceModeData = c.SliceF64()
 	default:
-		panic("LiteCrate: Invalid mode passed to AccessF64()")
+		panic("LiteCrate: Invalid mode passed to UseF64()")
 	}
 	return sliceModeData
 }
@@ -1734,7 +1761,7 @@ func (c *Crate) PeekC64() (val complex64) {
 // Write = 'write val into crate', Read = 'read from crate into val',
 // Peek = 'read from crate into val without advancing index'
 // Slice = 'Return the slice the next unread val occupies without altering val'
-func (c *Crate) AccessC64(val *complex64, mode AccessMode) (sliceModeData []byte) {
+func (c *Crate) UseC64(val *complex64, mode UseMode) (sliceModeData []byte) {
 	switch mode {
 	case Write:
 		c.WriteC64(*val)
@@ -1747,7 +1774,7 @@ func (c *Crate) AccessC64(val *complex64, mode AccessMode) (sliceModeData []byte
 	case Slice:
 		sliceModeData = c.SliceC64()
 	default:
-		panic("LiteCrate: Invalid mode passed to AccessC64()")
+		panic("LiteCrate: Invalid mode passed to UseC64()")
 	}
 	return sliceModeData
 }
@@ -1793,7 +1820,7 @@ func (c *Crate) PeekC128() (val complex128) {
 // Write = 'write val into crate', Read = 'read from crate into val',
 // Peek = 'read from crate into val without advancing index'
 // Slice = 'Return the slice the next unread val occupies without altering val'
-func (c *Crate) AccessC128(val *complex128, mode AccessMode) (sliceModeData []byte) {
+func (c *Crate) UseC128(val *complex128, mode UseMode) (sliceModeData []byte) {
 	switch mode {
 	case Write:
 		c.WriteC128(*val)
@@ -1806,7 +1833,7 @@ func (c *Crate) AccessC128(val *complex128, mode AccessMode) (sliceModeData []by
 	case Slice:
 		sliceModeData = c.SliceC128()
 	default:
-		panic("LiteCrate: Invalid mode passed to AccessC128()")
+		panic("LiteCrate: Invalid mode passed to UseC128()")
 	}
 	return sliceModeData
 }
@@ -1882,7 +1909,7 @@ func (c *Crate) PeekUVarint() (val uint64, bytesRead uint64) {
 // Write = 'write val into crate', Read = 'read from crate into val',
 // Peek = 'read from crate into val without advancing index'
 // Slice = 'Return the slice the next unread val occupies without altering val'
-func (c *Crate) AccessUVarint(val *uint64, mode AccessMode) (bytesUsed uint64, sliceModeData []byte) {
+func (c *Crate) UseUVarint(val *uint64, mode UseMode) (bytesUsed uint64, sliceModeData []byte) {
 	switch mode {
 	case Write:
 		bytesUsed = c.WriteUVarint(*val)
@@ -1895,7 +1922,7 @@ func (c *Crate) AccessUVarint(val *uint64, mode AccessMode) (bytesUsed uint64, s
 	case Slice:
 		sliceModeData = c.SliceUVarint()
 	default:
-		panic("LiteCrate: Invalid mode passed to AccessUVarint()")
+		panic("LiteCrate: Invalid mode passed to UseUVarint()")
 	}
 	return bytesUsed, sliceModeData
 }
@@ -1946,7 +1973,7 @@ func (c *Crate) PeekVarint() (val int64, bytesRead uint64) {
 // Write = 'write val into crate', Read = 'read from crate into val',
 // Peek = 'read from crate into val without advancing index'
 // Slice = 'Return the slice the next unread val occupies without altering val'
-func (c *Crate) AccessVarint(val *int64, mode AccessMode) (bytesUsed uint64, sliceModeData []byte) {
+func (c *Crate) UseVarint(val *int64, mode UseMode) (bytesUsed uint64, sliceModeData []byte) {
 	switch mode {
 	case Write:
 		bytesUsed = c.WriteVarint(*val)
@@ -1959,7 +1986,7 @@ func (c *Crate) AccessVarint(val *int64, mode AccessMode) (bytesUsed uint64, sli
 	case Slice:
 		sliceModeData = c.SliceVarint()
 	default:
-		panic("LiteCrate: Invalid mode passed to AccessVarint()")
+		panic("LiteCrate: Invalid mode passed to UseVarint()")
 	}
 	return bytesUsed, sliceModeData
 }
@@ -2021,7 +2048,7 @@ func (c *Crate) PeekLengthOrNil() (length uint64, isNil bool, bytesRead uint64) 
 // Write = 'write length or nil into crate', Read = 'read from crate into lenth and return readNil if nil',
 // Peek = 'read from crate into lenth and return readNil if nil, without advancing index'
 // Slice = 'Return the slice the next unread length-or-nil occupies without altering length'
-func (c *Crate) AccessLengthOrNil(length *uint64, writeNil bool, mode AccessMode) (readNil bool, bytesUsed uint64, sliceModeData []byte) {
+func (c *Crate) UseLengthOrNil(length *uint64, writeNil bool, mode UseMode) (readNil bool, bytesUsed uint64, sliceModeData []byte) {
 	switch mode {
 	case Write:
 		bytesUsed = c.WriteLengthOrNil(*length, writeNil)
@@ -2034,7 +2061,7 @@ func (c *Crate) AccessLengthOrNil(length *uint64, writeNil bool, mode AccessMode
 	case Slice:
 		sliceModeData = c.SliceLengthOrNil()
 	default:
-		panic("LiteCrate: Invalid mode passed to AccessLengthOrNil()")
+		panic("LiteCrate: Invalid mode passed to UseLengthOrNil()")
 	}
 	return readNil, bytesUsed, sliceModeData
 }
@@ -2054,13 +2081,13 @@ func (c *Crate) SliceString(length uint64) (slice []byte) {
 	return c.data[c.read : c.read+length : c.read+length]
 }
 
-// Discard next unread string with preceding length counter in crate
+// Discard next unread string with preceding length-or-nil counter in crate
 func (c *Crate) DiscardStringWithCounter() {
 	length, _, _ := c.ReadLengthOrNil()
 	c.DiscardN(length)
 }
 
-// Return byte slice the next unread string-with-length-counter occupies (not including counter)
+// Return byte slice the next unread string with length-or-nil counter occupies (not including counter)
 func (c *Crate) SliceStringWithCounter() (slice []byte) {
 	length, _, n := c.PeekLengthOrNil()
 	return c.data[c.read+n : c.read+n+length : c.read+n+length]
@@ -2076,7 +2103,7 @@ func (c *Crate) WriteString(val string) {
 	c.write += length
 }
 
-// Write string to crate with preceding length counter
+// Write string to crate with preceding length-or-nil counter
 func (c *Crate) WriteStringWithCounter(val string) {
 	length := len64str(val)
 	c.WriteLengthOrNil(length, false)
@@ -2098,7 +2125,7 @@ func (c *Crate) ReadString(length uint64) (val string) {
 	return val
 }
 
-// Read next string with preceding length counter from crate
+// Read next string with preceding length-or-nil counter from crate
 func (c *Crate) ReadStringWithCounter() (val string) {
 	length, _, _ := c.ReadLengthOrNil()
 	val = c.ReadString(length)
@@ -2113,7 +2140,7 @@ func (c *Crate) PeekString(length uint64) (val string) {
 	return val
 }
 
-// Read next string with preceding length counter from crate without advancing read index
+// Read next string with preceding length-or-nil counter from crate without advancing read index
 func (c *Crate) PeekStringWithCounter() (val string) {
 	idx := c.read
 	val = c.ReadStringWithCounter()
@@ -2125,7 +2152,7 @@ func (c *Crate) PeekStringWithCounter() (val string) {
 // Write = 'write val into crate', Read = 'read from crate into val',
 // Peek = 'read from crate into val without advancing index'
 // Slice = 'Return the slice the next unread val occupies without altering val'
-func (c *Crate) AccessString(val *string, readLength uint64, mode AccessMode) (sliceModeData []byte) {
+func (c *Crate) UseString(val *string, readLength uint64, mode UseMode) (sliceModeData []byte) {
 	switch mode {
 	case Write:
 		c.WriteString(*val)
@@ -2138,16 +2165,16 @@ func (c *Crate) AccessString(val *string, readLength uint64, mode AccessMode) (s
 	case Slice:
 		sliceModeData = c.SliceString(readLength)
 	default:
-		panic("LiteCrate: Invalid mode passed to AccessString()")
+		panic("LiteCrate: Invalid mode passed to UseString()")
 	}
 	return sliceModeData
 }
 
-// Use the string pointed to by val according to mode (with length counter):
+// Use the string with length-or-nil counter pointed to by val according to mode (with length counter):
 // Write = 'write val into crate', Read = 'read from crate into val',
 // Peek = 'read from crate into val without advancing index'
 // Slice = 'Return the slice the next unread val occupies without altering val'
-func (c *Crate) AccessStringWithCounter(val *string, mode AccessMode) (sliceModeData []byte) {
+func (c *Crate) UseStringWithCounter(val *string, mode UseMode) (sliceModeData []byte) {
 	switch mode {
 	case Write:
 		c.WriteStringWithCounter(*val)
@@ -2160,7 +2187,7 @@ func (c *Crate) AccessStringWithCounter(val *string, mode AccessMode) (sliceMode
 	case Slice:
 		sliceModeData = c.SliceStringWithCounter()
 	default:
-		panic("LiteCrate: Invalid mode passed to AccessStringWithCounter()")
+		panic("LiteCrate: Invalid mode passed to UseStringWithCounter()")
 	}
 	return sliceModeData
 }
@@ -2180,13 +2207,13 @@ func (c *Crate) SliceBytes(length uint64) (slice []byte) {
 	return c.data[c.read : c.read+length : c.read+length]
 }
 
-// Discard next unread bytes with preceding length counter in crate
+// Discard next unread bytes with preceding length-or-nil counter in crate
 func (c *Crate) DiscardBytesWithCounter() {
 	length, _, _ := c.ReadLengthOrNil()
 	c.DiscardN(length)
 }
 
-// Return byte slice the next unread bytes-with-length-counter occupies (not including counter)
+// Return byte slice the next unread []byte with length-or-nil counter occupies (not including counter)
 func (c *Crate) SliceBytesWithCounter() (slice []byte) {
 	length, _, n := c.PeekLengthOrNil()
 	return c.data[c.read+n : c.read+n+length : c.read+n+length]
@@ -2203,7 +2230,7 @@ func (c *Crate) WriteBytes(val []byte) {
 	c.write += length
 }
 
-// Write bytes to crate with preceding length counter
+// Write bytes to crate with preceding length-or-nil counter
 func (c *Crate) WriteBytesWithCounter(val []byte) {
 	length := len64(val)
 	isNil := val == nil
@@ -2220,7 +2247,7 @@ func (c *Crate) ReadBytes(length uint64) (val []byte) {
 	return val
 }
 
-// Read next bytes slice with preceding length counter from crate
+// Read next bytes slice with preceding length-or-nil counter from crate
 func (c *Crate) ReadBytesWithCounter() (val []byte) {
 	length, isNil, _ := c.ReadLengthOrNil()
 	if isNil {
@@ -2230,7 +2257,7 @@ func (c *Crate) ReadBytesWithCounter() (val []byte) {
 	return val
 }
 
-// Read next bytes slice of specified  length from crate without advancing read index
+// Read next bytes slice of specified length from crate without advancing read index
 func (c *Crate) PeekBytes(length uint64) (val []byte) {
 	idx := c.read
 	val = c.ReadBytes(length)
@@ -2238,7 +2265,7 @@ func (c *Crate) PeekBytes(length uint64) (val []byte) {
 	return val
 }
 
-// Read next bytes slice with preceding length counter from crate without advancing read index
+// Read next bytes slice with preceding length-or-nil counter from crate without advancing read index
 func (c *Crate) PeekBytesWithCounter() (val []byte) {
 	idx := c.read
 	val = c.ReadBytesWithCounter()
@@ -2250,7 +2277,7 @@ func (c *Crate) PeekBytesWithCounter() (val []byte) {
 // Write = 'write val into crate', Read = 'read from crate into val',
 // Peek = 'read from crate into val without advancing index'
 // Slice = 'Return the slice the next unread val occupies without altering val'
-func (c *Crate) AccessBytes(val *[]byte, readLength uint64, mode AccessMode) (sliceModeData []byte) {
+func (c *Crate) UseBytes(val *[]byte, readLength uint64, mode UseMode) (sliceModeData []byte) {
 	switch mode {
 	case Write:
 		c.WriteBytes(*val)
@@ -2263,16 +2290,16 @@ func (c *Crate) AccessBytes(val *[]byte, readLength uint64, mode AccessMode) (sl
 	case Slice:
 		sliceModeData = c.SliceBytes(readLength)
 	default:
-		panic("LiteCrate: Invalid mode passed to AccessBytes()")
+		panic("LiteCrate: Invalid mode passed to UseBytes()")
 	}
 	return sliceModeData
 }
 
-// Use the []byte pointed to by val according to mode (with length counter):
+// Use the []byte pointed to by val according to mode (with length-or-nil counter):
 // Write = 'write val into crate', Read = 'read from crate into val',
 // Peek = 'read from crate into val without advancing index'
 // Slice = 'Return the slice the next unread val occupies without altering val'
-func (c *Crate) AccessBytesWithCounter(val *[]byte, mode AccessMode) (sliceModeData []byte) {
+func (c *Crate) UseBytesWithCounter(val *[]byte, mode UseMode) (sliceModeData []byte) {
 	switch mode {
 	case Write:
 		c.WriteBytesWithCounter(*val)
@@ -2285,64 +2312,64 @@ func (c *Crate) AccessBytesWithCounter(val *[]byte, mode AccessMode) (sliceModeD
 	case Slice:
 		sliceModeData = c.SliceBytesWithCounter()
 	default:
-		panic("LiteCrate: Invalid mode passed to AccessBytesWithCounter()")
+		panic("LiteCrate: Invalid mode passed to UseBytesWithCounter()")
 	}
 	return sliceModeData
 }
 
 /**************
-	SelfAccessor
+	SelfSerializer
 ***************/
 
-// Write SelfAccessor to crate
-func (c *Crate) WriteSelfAccessor(val SelfAccessor) {
-	val.AccessSelf(c, Write)
+// Write SelfSerializer to crate
+func (c *Crate) WriteSelfSerializer(val SelfSerializer) {
+	val.UseSelf(c, Write)
 }
 
-// Read next SelfAccessor from crate
-func (c *Crate) ReadSelfAccessor(val SelfAccessor) {
-	val.AccessSelf(c, Read)
+// Read next SelfSerializer from crate
+func (c *Crate) ReadSelfSerializer(val SelfSerializer) {
+	val.UseSelf(c, Read)
 }
 
-// Read next SelfAccessor from crate without advancing read index
-func (c *Crate) PeekSelfAccessor(val SelfAccessor) {
+// Read next SelfSerializer from crate without advancing read index
+func (c *Crate) PeekSelfSerializer(val SelfSerializer) {
 	indexBefore := c.read
-	val.AccessSelf(c, Read)
+	val.UseSelf(c, Read)
 	c.read = indexBefore
 }
 
-// Discard next SelfAccessor in crate
-func (c *Crate) DiscardSelfAccessor(val SelfAccessor) {
-	val.AccessSelf(c, Discard)
+// Discard next SelfSerializer in crate
+func (c *Crate) DiscardSelfSerializer(val SelfSerializer) {
+	val.UseSelf(c, Discard)
 }
 
-// Return byte slice the next unread SelfAccessor occupies
-func (c *Crate) SliceSelfAcecessor(val SelfAccessor) (slice []byte) {
+// Return byte slice the next unread SelfSerializer occupies
+func (c *Crate) SliceSelfAcecessor(val SelfSerializer) (slice []byte) {
 	indexBefore := c.read
-	val.AccessSelf(c, Read)
+	val.UseSelf(c, Read)
 	length := c.read - indexBefore
 	c.read = indexBefore
 	return c.data[indexBefore : indexBefore+length : indexBefore+length]
 }
 
-// Use SelfAccessor according to mode
+// Use SelfSerializer according to mode
 // Write = 'write val into crate', Read = 'read from crate into val',
 // Peek = 'read from crate into val without advancing index'
 // Slice = 'Return the slice the next unread val occupies without altering val'
-func (c *Crate) AccessSelfAccessor(val SelfAccessor, mode AccessMode) (sliceModeData []byte) {
+func (c *Crate) UseSelfSerializer(val SelfSerializer, mode UseMode) (sliceModeData []byte) {
 	switch mode {
 	case Write:
-		c.WriteSelfAccessor(val)
+		c.WriteSelfSerializer(val)
 	case Read:
-		c.ReadSelfAccessor(val)
+		c.ReadSelfSerializer(val)
 	case Peek:
-		c.PeekSelfAccessor(val)
+		c.PeekSelfSerializer(val)
 	case Discard:
-		c.DiscardSelfAccessor(val)
+		c.DiscardSelfSerializer(val)
 	case Slice:
 		sliceModeData = c.SliceSelfAcecessor(val)
 	default:
-		panic("LiteCrate: Invalid mode passed to AccessSelfAccessor()")
+		panic("LiteCrate: Invalid mode passed to UseSelfSerializer()")
 	}
 	return sliceModeData
 }
@@ -2351,24 +2378,23 @@ func (c *Crate) AccessSelfAccessor(val SelfAccessor, mode AccessMode) (sliceMode
 	SLICE/MAP
 ***************/
 
-type AccessFunc[T any] func(val *T, mode AccessMode) (sliceModeData []byte)
+type UseFunc[T any] func(val *T, mode UseMode) (sliceModeData []byte)
 
 // Helper func for selectively reading/writing a slice of any type, dependant on mode.
-// Automatically reads/writes a length counter, then uses accessElementFunc() in a loop
-// to write each value. accessElementFunc() can be a
-// custom function for more complex cases, or one of the predefined Access____() functions,
-// assuming its signature matches the slice element type. For Read and Peek mode, a nil slice
-// will be initialized to a non-nil slice of the needed length
+// Automatically reads/writes a length-or-nil counter, then uses useElementFunc() in a loop
+// to write each value. useElementFunc() can be a
+// custom function for more complex cases, or one of the predefined Use____() functions,
+// assuming its signature matches the slice element type.
 //
 // Example:
 //	var myFloat64Slice = []float64{...}
 //	var myCrate = NewCrate(1000, FlagAutoDouble)
 //
-//	AccessSlice(myCrate, Write, &myFloat64Slice, myCrate.SelectF64)
-func AccessSlice[T any](crate *Crate, mode AccessMode, slice *[]T, accessElementFunc AccessFunc[T]) (sliceModeData []byte) {
+//	UseSlice(myCrate, Write, &myFloat64Slice, myCrate.UseF64)
+func UseSlice[T any](crate *Crate, mode UseMode, slice *[]T, useElementFunc UseFunc[T]) (sliceModeData []byte) {
 	length := len64(*slice)
 	writeNil := *slice == nil
-	readNil, _, _ := crate.AccessLengthOrNil(&length, writeNil, mode)
+	readNil, _, _ := crate.UseLengthOrNil(&length, writeNil, mode)
 	switch mode {
 	case Read, Peek:
 		if readNil {
@@ -2380,7 +2406,7 @@ func AccessSlice[T any](crate *Crate, mode AccessMode, slice *[]T, accessElement
 		}
 		for i := uint64(0); i < length; i += 1 {
 			var elem T
-			accessElementFunc(&elem, mode)
+			useElementFunc(&elem, mode)
 			(*slice)[i] = elem
 		}
 	case Write:
@@ -2388,12 +2414,12 @@ func AccessSlice[T any](crate *Crate, mode AccessMode, slice *[]T, accessElement
 			return nil
 		}
 		for i := uint64(0); i < length; i += 1 {
-			accessElementFunc(&(*slice)[i], mode)
+			useElementFunc(&(*slice)[i], mode)
 		}
 	case Slice, Discard:
 		start := crate.read
 		for i := uint64(0); i < length; i += 1 {
-			accessElementFunc(nil, Discard)
+			useElementFunc(nil, Discard)
 		}
 		end := crate.read
 		if mode == Slice {
@@ -2401,27 +2427,26 @@ func AccessSlice[T any](crate *Crate, mode AccessMode, slice *[]T, accessElement
 			return crate.data[start:end:end]
 		}
 	default:
-		panic("LiteCrate: invalid mode passed to AccessSlice()")
+		panic("LiteCrate: invalid mode passed to UseSlice()")
 	}
 	return nil
 }
 
 // Helper func for selectively reading/writing a map of any type, dependant on mode.
-// Automatically reads/writes a length counter, then uses accessKeyFunc() and accessValFunc() in a loop
-// to write each key-value pair adjacent to each other (key first, value second). accessKeyFunc() and accessValFunc() can be
-// custom functions for more complex cases, or one of the predefined Access____() functions,
-// assuming their signatures match the map key and value type. For Read and Peek mode, a nil map
-// will be initialized to a non-nil map of the needed length
+// Automatically reads/writes a length-or-nil counter, then uses useKeyFunc() and useValFunc() in a loop
+// to write each key-value pair adjacent to each other (key first, value second). useKeyFunc() and useValFunc() can be
+// custom functions for more complex cases, or one of the predefined Use____() functions,
+// assuming their signatures match the map key and value type.
 //
 // Example:
 //	var myStringIntMap = map[string]int{...}
 //	var myCrate = NewCrate(1000, FlagAutoDouble)
 //
-//	AccessMap(myCrate, Write, &myStringIntMap, myCrate.AccessStringWithCounter, myCrate.SelectInt)
-func AccessMap[K comparable, V any](crate *Crate, mode AccessMode, Map *map[K]V, accessKeyFunc AccessFunc[K], accessValFunc AccessFunc[V]) (sliceModeData []byte) {
+//	UseMap(myCrate, Write, &myStringIntMap, myCrate.UseStringWithCounter, myCrate.UseInt)
+func UseMap[K comparable, V any](crate *Crate, mode UseMode, Map *map[K]V, useKeyFunc UseFunc[K], useValFunc UseFunc[V]) (sliceModeData []byte) {
 	mapLen := len64map(*Map)
 	writeNil := *Map == nil
-	readNil, _, _ := crate.AccessLengthOrNil(&mapLen, writeNil, mode)
+	readNil, _, _ := crate.UseLengthOrNil(&mapLen, writeNil, mode)
 	switch mode {
 	case Read, Peek:
 		if readNil {
@@ -2434,8 +2459,8 @@ func AccessMap[K comparable, V any](crate *Crate, mode AccessMode, Map *map[K]V,
 		for i := uint64(0); i < mapLen; i += 1 {
 			var key K
 			var val V
-			accessKeyFunc(&key, mode)
-			accessValFunc(&val, mode)
+			useKeyFunc(&key, mode)
+			useValFunc(&val, mode)
 			(*Map)[key] = val
 		}
 	case Write:
@@ -2443,14 +2468,14 @@ func AccessMap[K comparable, V any](crate *Crate, mode AccessMode, Map *map[K]V,
 			return nil
 		}
 		for key, val := range *Map {
-			accessKeyFunc(&key, mode)
-			accessValFunc(&val, mode)
+			useKeyFunc(&key, mode)
+			useValFunc(&val, mode)
 		}
 	case Slice, Discard:
 		start := crate.read
 		for i := uint64(0); i < mapLen; i += 1 {
-			accessKeyFunc(nil, Discard)
-			accessValFunc(nil, Discard)
+			useKeyFunc(nil, Discard)
+			useValFunc(nil, Discard)
 		}
 		end := crate.read
 		if mode == Slice {
@@ -2458,7 +2483,7 @@ func AccessMap[K comparable, V any](crate *Crate, mode AccessMode, Map *map[K]V,
 			return crate.data[start:end:end]
 		}
 	default:
-		panic("LiteCrate: invalid mode passed to AccessMap()")
+		panic("LiteCrate: invalid mode passed to UseMap()")
 	}
 	return nil
 }

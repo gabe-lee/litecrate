@@ -71,5 +71,5 @@ echo "--- FuzzString"
 go test -fuzz=FuzzString -fuzztime 30s -cover
 echo "--- FuzzBytes"
 go test -fuzz=FuzzBytes -fuzztime 20s -cover
-echo "--- FuzzSelfAccessor"
-go test -fuzz=FuzzSelfAccessor -fuzztime 5m -cover
+echo "--- FuzzSelfSerializer"
+go test -fuzz=FuzzSelfSerializer -fuzztime 5m -cover
